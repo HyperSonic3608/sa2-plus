@@ -13,7 +13,7 @@
 
 #include "game/player_callbacks.h"
 
-#include "game/stage/collision.h"
+#include "game/stage/terrain_collision.h"
 #include "game/stage/player.h"
 #include "game/stage/camera.h"
 #include "game/stage/game_7.h"
@@ -834,17 +834,17 @@ void HandleCollision(EggSaucer *boss)
     s->x = x - gCamera.x;
     s->y = y - gCamera.y;
 
-    if (sub_800CA20(s, x, y, 2, &gPlayer) == 1) {
+    if (Coll_Player_Enemy(s, x, y, 2, &gPlayer) == 1) {
         sub_80452F8(boss);
     }
 
-    sub_800C320(s, x, y, 1, &gPlayer);
+    Coll_Player_Boss_Attack(s, x, y, 1, &gPlayer);
 
     if (boss->unk13 == 0) {
-        if (sub_800C320(s, x, y, 0, &gPlayer) == 1) {
+        if (Coll_Player_Boss_Attack(s, x, y, 0, &gPlayer) == 1) {
             sub_8045368(boss);
         } else {
-            if (sub_800CA20(s, x, y, 0, &gPlayer) == 1) {
+            if (Coll_Player_Enemy(s, x, y, 0, &gPlayer) == 1) {
                 sub_80452F8(boss);
             }
         }
@@ -852,7 +852,7 @@ void HandleCollision(EggSaucer *boss)
 
     Player_UpdateHomingPosition(QS(x), QS(y));
 
-    if (boss->unk13 == 0 && IsColliding_Cheese(s, x, y, 0, &gPlayer) == TRUE) {
+    if (boss->unk13 == 0 && Coll_Cheese_Enemy_Attack(s, x, y, 0, &gPlayer) == TRUE) {
         sub_8045368(boss);
         gCheeseTarget.task->unk15 = 0;
     }
@@ -865,11 +865,11 @@ void HandleCollision(EggSaucer *boss)
         s->x = x - gCamera.x;
         s->y = y - gCamera.y;
 
-        if (sub_800CA20(s, x, y, 1, &gPlayer) == 1) {
+        if (Coll_Player_Enemy(s, x, y, 1, &gPlayer) == 1) {
             sub_80452F8(boss);
         }
 
-        if (sub_800C320(s, x, y, 0, &gPlayer) == 1) {
+        if (Coll_Player_Boss_Attack(s, x, y, 0, &gPlayer) == 1) {
             boss->unk1F = 0x1E;
             boss->gunHealth--;
 
@@ -883,7 +883,7 @@ void HandleCollision(EggSaucer *boss)
                 INCREMENT_SCORE(500);
             }
         } else {
-            if (sub_800CA20(s, x, y, 0, &gPlayer) == 1) {
+            if (Coll_Player_Enemy(s, x, y, 0, &gPlayer) == 1) {
                 sub_80452F8(boss);
             }
         }
@@ -891,7 +891,7 @@ void HandleCollision(EggSaucer *boss)
         Player_UpdateHomingPosition(QS(x), QS(y));
 
         if (boss->unk1F == 0) {
-            if (IsColliding_Cheese(s, x, y, 0, &gPlayer) == 1) {
+            if (Coll_Cheese_Enemy_Attack(s, x, y, 0, &gPlayer) == 1) {
                 boss->unk1F = 0x1E;
                 boss->gunHealth--;
 
@@ -918,11 +918,11 @@ void HandleCollision(EggSaucer *boss)
     s->x = x - gCamera.x;
     s->y = y - gCamera.y;
 
-    if (sub_800CA20(s, x, y, 0, &gPlayer) == 1) {
+    if (Coll_Player_Enemy(s, x, y, 0, &gPlayer) == 1) {
         sub_80452F8(boss);
     }
 
-    if (sub_800CA20(s, x, y, 1, &gPlayer) == 1) {
+    if (Coll_Player_Enemy(s, x, y, 1, &gPlayer) == 1) {
         sub_80452F8(boss);
     }
 
@@ -943,13 +943,13 @@ void HandleCollision(EggSaucer *boss)
     s->x = x - gCamera.x;
     s->y = y - gCamera.y;
 
-    if (sub_800CA20(s, x, y, 1, &gPlayer) == 1) {
+    if (Coll_Player_Enemy(s, x, y, 1, &gPlayer) == 1) {
         sub_80452F8(boss);
         // insta kill
         gPlayer.moveState |= MOVESTATE_DEAD;
     }
 
-    if (sub_800CA20(s, x, y, 0, &gPlayer) == 1) {
+    if (Coll_Player_Enemy(s, x, y, 0, &gPlayer) == 1) {
         // Normal hit
         sub_80452F8(boss);
     }
@@ -1060,14 +1060,14 @@ void sub_8044784(EggSaucer *boss)
             fade->brightness = Q(SCREEN_FADE_BLEND_MAX);
             UpdateScreenFade(fade);
         }
-        gFlags &= ~FLAGS_4;
+        gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
         return;
     }
 
     if (boss->gunHealth == 0) {
         fade->brightness = Q(SCREEN_FADE_BLEND_MAX);
         UpdateScreenFade(fade);
-        gFlags &= ~FLAGS_4;
+        gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
         return;
     }
 
@@ -1139,7 +1139,7 @@ void sub_8044784(EggSaucer *boss)
         }
     }
     if (someBool && (boss->unk1A - 0x10) < temp && (boss->unk1A + 0x10) > temp) {
-        sub_800CBA4(&gPlayer);
+        Coll_DamagePlayer(&gPlayer);
     }
 }
 

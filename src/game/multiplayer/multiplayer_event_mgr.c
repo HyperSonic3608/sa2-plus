@@ -26,9 +26,11 @@ const RoomEventHandler gRoomEventHandlers[] = {
     [ROOMEVENT_TYPE_PLAYER_RING_LOSS - 1] = ReceiveRoomEvent_PlayerRingLoss,
     [ROOMEVENT_TYPE_MYSTERY_ITEMBOX_BREAK - 1] = ReceiveRoomEvent_MysteryItemBoxBreak,
     [ROOMEVENT_TYPE_ITEMEFFECT_APPLIED - 1] = ReceiveRoomEvent_ItemEffect,
+#ifndef COLLECT_RINGS_ROM
     [ROOMEVENT_TYPE_REACHED_STAGE_GOAL - 1] = ReceiveRoomEvent_ReachedStageGoal,
     [ROOMEVENT_TYPE_UNKNOWN - 1] = ReceiveRoomEvent_Unknown,
-    [8] = NULL,
+#endif
+    NULL,
 };
 
 void Task_MultiplayerEventMgr_Send(void)
@@ -82,8 +84,7 @@ void Task_MultiplayerEventMgr_Receive(void)
 
         recv = &gMultiSioRecv[i];
         if (recv->pat0.unk0 == 0x5000 && (recv->pat0.unk8[0] & (0x1000 << i)) != (send->unk8[0] & (0x1000 << i))) {
-            if ((u8)(recv->pat0.unkE - 1) < 8) {
-
+            if (recv->pat0.unkE > 0 && recv->pat0.unkE < ARRAY_COUNT(gRoomEventHandlers)) {
                 gRoomEventHandlers[recv->pat0.unkE - 1](recv, i);
             }
             send->unk8[0] ^= (0x1000 << i);
@@ -98,6 +99,7 @@ void ReceiveRoomEvent_ItemEffect(union MultiSioData *recv, u8 i)
 
     if (!(us->unk5C & 1) && PLAYER_IS_ALIVE && gUnknown_030054B4[SIO_MULTI_CNT->id] == -1) {
         switch (recv->pat0.unkF) {
+#ifndef COLLECT_RINGS_ROM
             case 0: {
                 if (gGameMode != GAME_MODE_TEAM_PLAY
                     || ((gMultiplayerConnections & (0x10 << (i))) >> ((i + 4))
@@ -160,6 +162,7 @@ void ReceiveRoomEvent_ItemEffect(union MultiSioData *recv, u8 i)
                 }
                 break;
             }
+#endif
             case 4: {
                 if (gGameMode != GAME_MODE_TEAM_PLAY
                     || ((gMultiplayerConnections & (0x10 << (i))) >> ((i + 4))
@@ -173,6 +176,7 @@ void ReceiveRoomEvent_ItemEffect(union MultiSioData *recv, u8 i)
     }
 }
 
+#ifndef COLLECT_RINGS_ROM
 void ReceiveRoomEvent_ReachedStageGoal(union MultiSioData *recv, u8 i)
 {
     u32 j;
@@ -208,7 +212,7 @@ void ReceiveRoomEvent_ReachedStageGoal(union MultiSioData *recv, u8 i)
     }
 
     if (gUnknown_030054B4[i] == -1) {
-        sub_8019CCC(i, count2);
+        CreateMultiplayerFinishResult(i, count2);
     } else {
         somebool = 1;
     }
@@ -217,7 +221,7 @@ void ReceiveRoomEvent_ReachedStageGoal(union MultiSioData *recv, u8 i)
         for (j = 0; j < 4 && gMultiplayerPlayerTasks[j] != NULL; j++) {
             if (j != i && gUnknown_030054B4[j] == -1
                 && (gMultiplayerConnections & (0x10 << (j))) >> ((j + 4)) == (gMultiplayerConnections & (0x10 << (i))) >> (i + 4)) {
-                sub_8019CCC(j, count2);
+                CreateMultiplayerFinishResult(j, count2);
                 if (j == SIO_MULTI_CNT->id) {
                     Player_TransitionCancelFlyingAndBoost(&gPlayer);
                     gPlayer.moveState &= ~MOVESTATE_STOOD_ON_OBJ;
@@ -228,9 +232,7 @@ void ReceiveRoomEvent_ReachedStageGoal(union MultiSioData *recv, u8 i)
                     gPlayer.moveState &= ~MOVESTATE_400;
                     gPlayer.moveState &= ~MOVESTATE_100;
                     gPlayer.charState = CHARSTATE_HIT_AIR;
-                    sub_8023B5C(&gPlayer, 0xe);
-                    gPlayer.spriteOffsetX = 6;
-                    gPlayer.spriteOffsetY = 0xE;
+                    PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
                     gPlayer.unk61 = 0;
                     gPlayer.unk62 = 0;
                     gPlayer.qSpeedGround = 0;
@@ -263,11 +265,11 @@ void ReceiveRoomEvent_ReachedStageGoal(union MultiSioData *recv, u8 i)
             mpp2 = TASK_DATA(gMultiplayerPlayerTasks[j]);
             if (gUnknown_030054B4[j] == -1) {
                 if (gGameMode == GAME_MODE_TEAM_PLAY) {
-                    sub_8019CCC(j, 1);
+                    CreateMultiplayerFinishResult(j, 1);
                 } else {
                     u32 temp;
                     RoomEvent *roomEvent;
-                    sub_8019CCC(j, count - 1);
+                    CreateMultiplayerFinishResult(j, count - 1);
                     mpp2->unk5C |= 1;
                     gPlayer.moveState |= MOVESTATE_IGNORE_INPUT;
                     gPlayer.heldInput = 0;
@@ -282,10 +284,11 @@ void ReceiveRoomEvent_ReachedStageGoal(union MultiSioData *recv, u8 i)
         }
 
         if (!somebool) {
-            sub_8019F08();
+            CreateMultiplayerFinishHandler();
         }
     }
 }
+#endif
 
 struct Task *CreateMultiplayerSendEventMgr(void)
 {

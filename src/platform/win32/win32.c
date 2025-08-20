@@ -127,7 +127,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR lpCmdLine, 
             while (sRunning) {
                 memset(sImageBuffer, 0, sizeof(sImageBuffer));
 
-                gFlags |= 0x4000;
+                gFlags |= FLAGS_4000;
                 EngineMainLoop();
                 //    REG_KEYINPUT ^= (A_BUTTON | START_BUTTON);
 
@@ -152,7 +152,7 @@ DWORD WINAPI GameThread(void *pThreadParam)
     REG_KEYINPUT &= ~START_BUTTON;
     // while (sRunning)
     {
-        gFlags |= 0x4000;
+        gFlags |= FLAGS_4000;
         EngineMainLoop();
         REG_KEYINPUT ^= (A_BUTTON | START_BUTTON);
         REG_KEYINPUT |= (DPAD_RIGHT);
@@ -445,7 +445,7 @@ void VBlankIntrWait()
     }
 }
 
-void *Platform_malloc(int numBytes) { return HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS | HEAP_ZERO_MEMORY, numBytes); }
+void *Platform_malloc(size_t numBytes) { return HeapAlloc(GetProcessHeap(), HEAP_GENERATE_EXCEPTIONS | HEAP_ZERO_MEMORY, numBytes); }
 
 void Platform_free(void *ptr) { HeapFree(GetProcessHeap(), 0, ptr); }
 

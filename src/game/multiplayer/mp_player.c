@@ -8,7 +8,7 @@
 #include "game/sa1_sa2_shared/collision.h"
 
 #include "game/stage/spawn_positions.h"
-#include "game/stage/collision.h"
+#include "game/stage/terrain_collision.h"
 #include "game/stage/stage.h"
 #include "game/stage/player.h"
 #include "game/stage/camera.h"
@@ -43,6 +43,12 @@ void sub_8017670(void);
 void sub_8017C28(void);
 void LaunchPlayer(s16);
 
+#if COLLECT_RINGS_ROM
+// Can't be sure this was defined here, but it works as it
+// may have something to do with the characters
+const u16 gUnknown_02015B18[] = { 0x55, 0x59, 0x5D, 0x61 };
+#endif
+
 void CreateMultiplayerPlayer(u8 id)
 {
     u16 *p;
@@ -75,10 +81,13 @@ void CreateMultiplayerPlayer(u8 id)
     mpp->pos.x = 0;
     mpp->pos.y = 0;
 
-    if (gGameMode < GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
+#ifndef COLLECT_RINGS_ROM
+    if (IS_SINGLE_PLAYER || gGameMode == GAME_MODE_MULTI_PLAYER || gGameMode == GAME_MODE_TEAM_PLAY) {
         mpp->pos.x = gSpawnPositions[gCurrentLevel][0];
         mpp->pos.y = gSpawnPositions[gCurrentLevel][1];
-    } else {
+    } else
+#endif
+    {
         switch (SIO_MULTI_CNT->id) {
             case 0: {
                 mpp->pos.x = 232;
@@ -120,7 +129,9 @@ void CreateMultiplayerPlayer(u8 id)
     s->y = 0;
 
     mpp->transform.qScaleY = 256;
+#ifndef COLLECT_RINGS_ROM
     s->graphics.anim = gPlayerCharacterIdleAnims[gMultiplayerCharacters[mpp->unk56]];
+#endif
 
     if (mpp->unk56 != SIO_MULTI_CNT->id) {
         s->graphics.dest = VramMalloc(64);
@@ -133,8 +144,13 @@ void CreateMultiplayerPlayer(u8 id)
     gMultiplayerPlayerTasks[mpp->unk56] = t;
 }
 
+#ifndef COLLECT_RINGS_ROM
 // around 70%: https://decomp.me/scratch/KNjEN
-NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPlayer.inc", void Task_CreateMultiplayerPlayer())
+NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPlayer.inc", void Task_CreateMultiplayerPlayer(void))
+#else
+NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPlayer__CollectRings.inc",
+         void Task_CreateMultiplayerPlayer(void))
+#endif
 {
     MultiplayerPlayer *mpp = TASK_DATA(gCurTask);
     Sprite *s = &mpp->s;
@@ -216,9 +232,7 @@ NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPla
                         gPlayer.moveState |= MOVESTATE_IN_AIR;
                         gPlayer.moveState &= ~MOVESTATE_400;
                         gPlayer.moveState &= ~MOVESTATE_100;
-                        sub_8023B5C(&gPlayer, 14);
-                        gPlayer.spriteOffsetX = 6;
-                        gPlayer.spriteOffsetY = 14;
+                        PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
                         gPlayer.unk61 = 0;
                         gPlayer.unk62 = 0;
 
@@ -279,7 +293,7 @@ NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPla
             //     PAUSE_BACKGROUNDS_QUEUE();
             //     gUnknown_03005390 = 0;
             //     PAUSE_GRAPHICS_QUEUE();
-            //     MultiPakCommunicationError();
+            //     LinkCommunicationError();
             //     return;
             // }
         }
@@ -294,7 +308,7 @@ NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPla
             PAUSE_BACKGROUNDS_QUEUE();
             gUnknown_03005390 = 0;
             PAUSE_GRAPHICS_QUEUE();
-            MultiPakCommunicationError();
+            LinkCommunicationError();
             return;
         }
     }
@@ -491,6 +505,7 @@ NONMATCH("asm/non_matching/game/multiplayer/mp_player__Task_CreateMultiplayerPla
 }
 END_NONMATCH
 
+#ifndef COLLECT_RINGS_ROM
 void sub_8016D20(void)
 {
     Sprite *sprPlayer = &gPlayer.spriteInfoBody->s;
@@ -742,9 +757,7 @@ void sub_801707C(void)
                     gPlayer.moveState &= ~MOVESTATE_STOOD_ON_OBJ;
 
                     mpp->unk5C |= 4;
-                    sub_8023B5C(&gPlayer, 14);
-                    gPlayer.spriteOffsetX = 6;
-                    gPlayer.spriteOffsetY = 14;
+                    PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
 
                     {
                         RoomEvent_Unknown *roomEvent = CreateRoomEvent();
@@ -958,7 +971,7 @@ void sub_8017670(void)
                 mpp->unk60 = 30;
             }
 
-            if (CheckRectCollision_SpritePlayer(s, mpp->pos.x, mpp->pos.y, &gPlayer, (Rect8 *)rect)) {
+            if (Coll_Player_Entity_RectIntersection(s, mpp->pos.x, mpp->pos.y, &gPlayer, (Rect8 *)rect)) {
                 u8 temp = ((mpp->unk54 >> 7) & 1);
                 if ((temp == gPlayer.layer)
                     && (s->graphics.anim == SA2_ANIM_CHAR(SA2_CHAR_ANIM_19, CHARACTER_KNUCKLES)
@@ -968,9 +981,7 @@ void sub_8017670(void)
                     if ((!GRAVITY_IS_INVERTED && I(gPlayer.qWorldY) > mpp->pos.y)
                         || (GRAVITY_IS_INVERTED && I(gPlayer.qWorldY) < mpp->pos.y)) {
                         gPlayer.moveState |= MOVESTATE_IA_OVERRIDE;
-                        sub_8023B5C(&gPlayer, 14);
-                        gPlayer.spriteOffsetX = 6;
-                        gPlayer.spriteOffsetY = 14;
+                        PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
                         gPlayer.qSpeedGround = 0;
                         gPlayer.qSpeedAirX = 0;
                         gPlayer.charState = CHARSTATE_IDLE;
@@ -1286,6 +1297,7 @@ void sub_8017F34(void)
         return;
     }
 }
+#endif
 
 void sub_8018120(void)
 {
@@ -1310,6 +1322,7 @@ void sub_8018120(void)
     }
 }
 
+#ifndef COLLECT_RINGS_ROM
 bool32 sub_80181E0(void)
 {
     Sprite *sprPlayer = &gPlayer.spriteInfoBody->s;
@@ -1348,6 +1361,7 @@ bool32 sub_80181E0(void)
     }
     return FALSE;
 }
+#endif
 
 bool32 sub_8018300(void)
 {
@@ -1392,6 +1406,7 @@ bool32 sub_8018300(void)
             }
         }
         if (val2 & 2) {
+#ifndef COLLECT_RINGS_ROM
             if (val2 & 1) {
                 if (mpp->pos.x < I(gPlayer.qWorldX)) {
                     gPlayer.moveState &= ~MOVESTATE_FACING_LEFT;
@@ -1399,7 +1414,9 @@ bool32 sub_8018300(void)
                     gPlayer.moveState |= MOVESTATE_FACING_LEFT;
                 }
                 sub_800DE44(&gPlayer);
-            } else {
+            } else
+#endif
+            {
                 if (mpp->pos.x < I(gPlayer.qWorldX)) {
                     gPlayer.moveState |= MOVESTATE_FACING_LEFT;
                 } else {
@@ -1482,6 +1499,7 @@ bool32 sub_8018300(void)
     return FALSE;
 }
 
+#ifndef COLLECT_RINGS_ROM
 void Task_HandleLaunchPlayer(void)
 {
     PlayerSpriteInfo *psi = gPlayer.spriteInfoBody;
@@ -1496,9 +1514,7 @@ void Task_HandleLaunchPlayer(void)
         gPlayer.moveState &= ~MOVESTATE_100;
         gPlayer.charState = CHARSTATE_SPRING_B;
         sprPlayer->prevVariant = -1;
-        sub_8023B5C(&gPlayer, 14);
-        gPlayer.spriteOffsetX = 6;
-        gPlayer.spriteOffsetY = 14;
+        PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
         m4aSongNumStart(SE_SPRING);
         gPlayer.qSpeedAirY = *airSpeed;
         TaskDestroy(gCurTask);
@@ -1511,6 +1527,7 @@ void Task_HandleLaunchPlayer(void)
         TaskDestroy(gCurTask);
     }
 }
+#endif
 
 void sub_8018818(void)
 {
@@ -1537,6 +1554,7 @@ void TaskDestructor_MultiplayerPlayer(struct Task *t)
     VramFree(mpp->s.graphics.dest);
 }
 
+#ifndef COLLECT_RINGS_ROM
 void LaunchPlayer(s16 airSpeedY)
 {
     struct Task *t = TaskCreate(Task_HandleLaunchPlayer, sizeof(s16), 0x2000, 0, NULL);
@@ -1547,3 +1565,4 @@ void LaunchPlayer(s16 airSpeedY)
     gPlayer.charState = CHARSTATE_AMY_SA1_JUMP;
     gPlayer.moveState |= MOVESTATE_800000;
 }
+#endif

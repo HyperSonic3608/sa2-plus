@@ -93,9 +93,6 @@ SCANINC   := tools/scaninc/scaninc$(EXE)
 PREPROC	  := tools/preproc/preproc$(EXE)
 RAMSCRGEN := tools/ramscrgen/ramscrgen$(EXE)
 FIX 	  := tools/gbafix/gbafix$(EXE)
-ifeq ($(CREATE_PDB),1)
-CV2PDB    := ./cv2pdb.exe
-endif
 
 TOOLDIRS := $(filter-out tools/agbcc/ tools/BriBaSA_ex/, $(dir $(wildcard tools/*/Makefile)))
 TOOLBASE = $(TOOLDIRS:tools/%=%)
@@ -243,10 +240,6 @@ endif
 ifeq ($(PLATFORM),gba)
   ASFLAGS  += -mcpu=arm7tdmi -mthumb-interwork
   CC1FLAGS += -mthumb-interwork
-  ifeq ($(THUMB_SUPPORT),1)
-    ASFLAGS  += -mthumb-interwork
-    CC1FLAGS += -mthumb-interwork
-  endif
 else
   ifeq ($(PLATFORM), sdl)
     # for modern we are using a modern compiler
@@ -408,13 +401,14 @@ europe: ; @$(MAKE) GAME_REGION=EUROPE
 
 sdl: ; @$(MAKE) PLATFORM=sdl
 
+tas_sdl: ; @$(MAKE) sdl TAS_TESTING=1
+
 sdl_win32:
 	@$(MAKE) PLATFORM=sdl_win32 CPU_ARCH=i386
 
 win32: ; @$(MAKE) PLATFORM=win32 CPU_ARCH=i386
 
 #### RECIPES ####
-tas_sdl: ; @$(MAKE) sdl TAS_TESTING=1
 
 include songs.mk
 include graphics.mk
@@ -476,9 +470,6 @@ else ifeq ($(PLATFORM),sdl)
 	cp $< $@
 else
 	$(OBJCOPY) -O pei-x86-64 $< $@
-ifeq ($(CREATE_PDB),1)
-	$(CV2PDB) $@
-endif
 endif
 
 # Build c sources, and ensure alignment
@@ -502,7 +493,7 @@ $(C_BUILDDIR)/%.o: $(C_SUBDIR)/%.s
 	@echo "$(AS) <flags> -o $@ $<"
 	@$(AS) $(ASFLAGS) -o $@ $<
 
-$(ASM_BUILDDIR)/%.o: $(ASM_SUBDIR)/%.s $$(asm_dep)
+$(ASM_BUILDDIR)/%.o: $(ASM_SUBDIR)/%.s
 	@echo "$(AS) <flags> -o $@ $<"
 	@$(AS) $(ASFLAGS) -o $@ $<
 

@@ -191,10 +191,7 @@ static void Task_8076A6C(void)
 static void sub_8076B84(Sprite_GermanFlute *flute)
 {
     Player_TransitionCancelFlyingAndBoost(&gPlayer);
-    sub_8023B5C(&gPlayer, 14);
-
-    gPlayer.spriteOffsetX = 6;
-    gPlayer.spriteOffsetY = 14;
+    PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
     gPlayer.moveState |= MOVESTATE_IA_OVERRIDE;
     gPlayer.charState = CHARSTATE_SPIN_ATTACK;
     m4aSongNumStart(SE_SPIN_ATTACK);
@@ -338,7 +335,7 @@ static void sub_8076E3C(Sprite_GermanFlute *flute)
 
     gPlayer.qSpeedAirY = -sFluteUpdraft[flute->kind];
     flute->timer = 0;
-    sub_8080AFC(flute->posX, (flute->posY + 24), 0, 30, 0, DEG_TO_SIN(270) / 4, 3);
+    CreateAngledNoteParticle(flute->posX, (flute->posY + 24), 0, 30, 0, DEG_TO_SIN(270) / 4, 3);
     m4aSongNumStart(sFluteSfx[flute->kind]);
     gCurTask->main = sub_80769E0;
 }

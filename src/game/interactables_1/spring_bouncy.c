@@ -102,7 +102,7 @@ static void Task_Interactable_BouncySpring()
     s->y = screenY - gCamera.y;
     if (!(gPlayer.moveState & (MOVESTATE_IA_OVERRIDE | MOVESTATE_DEAD))) {
         airSpeed = gPlayer.qSpeedAirY;
-        if ((sub_800CCB8(s, screenX, screenY, &gPlayer) != 0)) {
+        if ((Coll_Player_Platform(s, screenX, screenY, &gPlayer) != 0)) {
             u8 index;
 
             index = Div(airSpeed, 400);
@@ -120,10 +120,7 @@ static void Task_Interactable_BouncySpring()
             gPlayer.disableTrickTimer = 3;
 
             Player_TransitionCancelFlyingAndBoost(&gPlayer);
-            sub_8023B5C(&gPlayer, 14);
-
-            gPlayer.spriteOffsetX = 6;
-            gPlayer.spriteOffsetY = 14;
+            PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
 
             gPlayer.moveState = (gPlayer.moveState | MOVESTATE_IN_AIR) & ~MOVESTATE_100;
 

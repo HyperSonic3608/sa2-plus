@@ -50,6 +50,7 @@ static void Task_Spring_Activated(void);
 static bool32 CheckSpringPlayerCollisions(Sprite *p0, MapEntity *me, Sprite_Spring *spring, Player *player);
 static void TaskDestructor_Spring(struct Task *t);
 
+#ifndef COLLECT_RINGS_ROM
 static const u16 sSpringAnimationData[NUM_SPRING_KINDS][SPRINGTYPE_COUNT][4] = {
     {
         [SPRINGTYPE_NORMAL_UP] = { SA2_ANIM_SPRING, 0, 20, 0x0000 },
@@ -88,6 +89,12 @@ static const u16 sSpringAnimationData[NUM_SPRING_KINDS][SPRINGTYPE_COUNT][4] = {
         [SPRINGTYPE_SMALL_UPRIGHT] = { SA2_ANIM_SPRING_TEC_BAS, 6, 12, 0x0000 },
     },
 };
+#else
+static const u8 gUnknown_02015B24[SPRINGTYPE_COUNT][2] = {
+    { 0x00, 0x00 }, { 0x00, 0x02 }, { 0x02, 0x01 }, { 0x02, 0x00 }, { 0x04, 0x01 },
+    { 0x04, 0x00 }, { 0x04, 0x03 }, { 0x04, 0x02 }, { 0x06, 0x01 }, { 0x06, 0x00 },
+};
+#endif
 
 // Effects applied onto the player-state.
 // These trigger the player acceleration when touching each of the spring directions
@@ -95,10 +102,12 @@ static const u8 sSpringDirToPlayerTransition[SPRINGTYPE_COUNT]
     = { PLTRANS_SPRING_UP,       PLTRANS_SPRING_DOWN,      PLTRANS_SPRING_LEFT,       PLTRANS_SPRING_RIGHT,   PLTRANS_SPRING_UP_LEFT,
         PLTRANS_SPRING_UP_RIGHT, PLTRANS_SPRING_DOWN_LEFT, PLTRANS_SPRING_DOWN_RIGHT, PLTRANS_SPRING_UP_LEFT, PLTRANS_SPRING_UP_RIGHT };
 
+#ifndef COLLECT_RINGS_ROM
 static const u16 sSpring_MusicPlant_Soundeffects[5]
     = { SE_MUSIC_PLANT_SPRING_1, SE_MUSIC_PLANT_SPRING_2, SE_MUSIC_PLANT_SPRING_3, SE_MUSIC_PLANT_SPRING_4, MUS_DUMMY };
+#endif
 
-static void CreateEntity_Spring(u8 springType, MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 spriteY)
+void CreateEntity_Spring(u8 springType, MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 spriteY)
 {
     s16 springKind = SPRING_KIND_NORMAL;
     struct Task *t = TaskCreate(Task_Spring_Idle, sizeof(Sprite_Spring), 0x2010, 0, TaskDestructor_Spring);
@@ -116,16 +125,16 @@ static void CreateEntity_Spring(u8 springType, MapEntity *me, u16 spriteRegionX,
     SET_MAP_ENTITY_INITIALIZED(me);
 
     s->oamFlags = SPRITE_OAM_ORDER(18);
-    s->graphics.size = springKind;
-    s->animCursor = springKind;
-    s->qAnimDelay = springKind;
+    s->graphics.size = 0;
+    s->animCursor = 0;
+    s->qAnimDelay = 0;
 
     s->prevVariant = -1;
     s->animSpeed = 0x10;
     s->palId = 0;
     s->hitboxes[0].index = -1;
     s->frameFlags = 0x2200;
-
+#ifndef COLLECT_RINGS_ROM
     if (LEVEL_TO_ZONE(gCurrentLevel) == ZONE_3)
         springKind = SPRING_KIND_MUSIC_PLANT;
 
@@ -143,6 +152,20 @@ static void CreateEntity_Spring(u8 springType, MapEntity *me, u16 spriteRegionX,
     s->variant = sSpringAnimationData[springKind][springType][1];
 
     s->frameFlags |= sSpringAnimationData[springKind][springType][3];
+#else
+    s->graphics.dest = VramMalloc(0x14);
+    s->graphics.anim = 0x66;
+    s->variant = gUnknown_02015B24[springType][0];
+
+    if (gUnknown_02015B24[springType][1] & 1) {
+        s->frameFlags |= 0x400;
+    }
+
+    if (gUnknown_02015B24[springType][1] & 2) {
+        s->frameFlags |= 0x800;
+    }
+#endif
+
     spring->dir = springType;
     spring->speedId = me->d.sData[0] & 0x3;
     UpdateSpriteAnimation(s);
@@ -158,8 +181,10 @@ static void Task_Spring_Idle(void)
         gCurTask->main = Task_Spring_Activated;
         s->variant++;
 
+#ifndef COLLECT_RINGS_ROM
         if ((LEVEL_TO_ZONE(gCurrentLevel) == ZONE_3 && (spring->dir / 2) == 0))
             s->graphics.dest = (void *)(OBJ_VRAM0 + 0x2B00);
+#endif
     }
 
     if (IS_OUT_OF_CAM_RANGE(s->x, s->y)) {
@@ -184,10 +209,11 @@ static void Task_Spring_Activated(void)
     } else {
         if (UpdateSpriteAnimation(s) == 0) {
             s->variant--;
-
+#ifndef COLLECT_RINGS_ROM
             if ((LEVEL_TO_ZONE(gCurrentLevel) == ZONE_3) && (spring->dir / 2) == 0) {
                 s->graphics.dest = (void *)(OBJ_VRAM0 + 0x2980);
             }
+#endif
 
             UpdateSpriteAnimation(s);
             gCurTask->main = Task_Spring_Idle;
@@ -204,15 +230,17 @@ static bool32 CheckSpringPlayerCollisions(Sprite *s, MapEntity *me, Sprite_Sprin
     s->x = xPos - gCamera.x;
     s->y = yPos - gCamera.y;
 
-    if (((player->moveState & MOVESTATE_IA_OVERRIDE) == 0) && sub_800CDBC(s, xPos, yPos, player) != 0) {
-
+    if (((player->moveState & MOVESTATE_IA_OVERRIDE) == 0) && Coll_Player_Interactable(s, xPos, yPos, player) != 0) {
         player->transition = sSpringDirToPlayerTransition[spring->dir];
         player->unk6E = spring->speedId;
         player->unk6C = TRUE;
 
+#ifndef COLLECT_RINGS_ROM
         if (LEVEL_TO_ZONE(gCurrentLevel) == ZONE_3) {
             m4aSongNumStart(sSpring_MusicPlant_Soundeffects[spring->speedId]);
-        } else {
+        } else
+#endif
+        {
             m4aSongNumStart(SE_SPRING);
         }
 
@@ -225,7 +253,10 @@ static bool32 CheckSpringPlayerCollisions(Sprite *s, MapEntity *me, Sprite_Sprin
 static void TaskDestructor_Spring(struct Task *t)
 {
     Sprite_Spring *spring = TASK_DATA(t);
-    if ((LEVEL_TO_ZONE(gCurrentLevel) != ZONE_3) || (spring->dir / 2 != 0)) {
+#ifndef COLLECT_RINGS_ROM
+    if ((LEVEL_TO_ZONE(gCurrentLevel) != ZONE_3) || (spring->dir / 2 != 0))
+#endif
+    {
         VramFree(spring->s.graphics.dest);
     }
 }

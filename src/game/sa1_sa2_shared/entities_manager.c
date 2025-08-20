@@ -10,6 +10,7 @@
 #include "game/entity.h"
 #include "game/sa1_sa2_shared/item_box.h"
 #include "game/sa1_sa2_shared/entities_manager.h"
+#include "game/sa1_sa2_shared/enemy_defeat_score.h"
 
 #include "game/sa1_sa2_shared/interactables/platform_thin.h"
 #include "game/sa1_sa2_shared/interactables/ceiling_slope.h"
@@ -46,9 +47,10 @@
 
 #include "game/interactables_2/music_plant/note_sphere.h"
 #include "game/interactables_2/music_plant/pipe_horn.h"
+#include "game/interactables_2/music_plant/french_horn.h"
 #include "game/interactables_2/music_plant/keyboard.h"
 #include "game/interactables_2/music_plant/note_block.h"
-#include "game/interactables_2/music_plant/guitar_string.h"
+#include "game/interactables_2/music_plant/chord.h"
 #include "game/interactables_2/music_plant/german_flute.h"
 
 #include "game/interactables_2/ice_paradise/big_snowball.h"
@@ -79,7 +81,7 @@
 #include "game/interactables_2/note_particle.h"
 #include "game/interactables_2/105.h"
 #include "game/interactables_2/special_ring.h"
-#include "game/interactables_2/notification_ring_bonus.h"
+#include "game/interactables_2/multiplayer_teleport.h"
 #include "game/interactables_2/sky_canyon_init.h"
 
 #include "game/mystery_item_box.h"
@@ -113,8 +115,8 @@
 #include "constants/zones.h"
 #include "constants/songs.h"
 
-// Unknown task
-extern void CreateEnemyDefeatScore(s16, s16);
+#define NUM_ENEMY_DEFEAT_SCORES          5
+#define READ_START_INDEX(p, hrc, rx, ry) (*((u32 *)((((u8 *)(p)) + (((hrc) * (ry)) * (sizeof(u32)))) + ((rx) * (sizeof(u32))))))
 
 typedef struct Task *(*StagePreInitFunc)(void);
 typedef void (*MapEntityInit)(MapEntity *, u16, u16, u8);
@@ -124,14 +126,10 @@ struct Range {
     CamCoord xHigh, yHigh;
 };
 
-struct Ranges {
-    struct Range a;
-    struct Range b;
-};
+static void Task_8008DCC(void);
 
-void Task_8008DCC(void);
-
-void sub_80095FC(struct Task *);
+#ifndef COLLECT_RINGS_ROM
+static void TaskDestructor_EntitiesManager(struct Task *);
 
 const RLCompressed *const gSpritePosData_interactables[NUM_LEVEL_IDS] = {
     (void *)&zone1_act1_interactables,
@@ -321,9 +319,9 @@ const MapEntityInit gSpriteInits_Interactables[] = {
     CreateEntity_Crane,
     CreateEntity_DashRing,
     CreateEntity_FloatingSpring_Up,
-    CreateEntity_Note_Sphere,
-    CreateEntity_Note_Block,
-    CreateEntity_GuitarString,
+    CreateEntity_NoteSphere,
+    CreateEntity_NoteBlock,
+    CreateEntity_Chord,
     CreateEntity_Keyboard_Vertical,
     CreateEntity_Keyboard_Horizontal_PushLeft,
     CreateEntity_Keyboard_Horizontal_PushRight,
@@ -335,7 +333,7 @@ const MapEntityInit gSpriteInits_Interactables[] = {
     CreateEntity_HalfPipe_End,
     CreateEntity_HalfPipe_Start,
     CreateEntity_BigSnowball,
-    CreateEntity_NoteBlock,
+    CreateEntity_BounceBlock,
     CreateEntity_CeilingSlope,
     CreateEntity_Pipe_Start,
     CreateEntity_Pipe_End,
@@ -381,12 +379,12 @@ const MapEntityInit gSpriteInits_Enemies[] = {
     CreateEntity_Kyura,    CreateEntity_Star,     CreateEntity_BulletBuzzer,
 };
 
-#define NUM_ENEMY_DEFEAT_SCORES 5
 const u16 enemyDefeatScores[NUM_ENEMY_DEFEAT_SCORES] = {
     100, 200, 400, 800, 1000,
 };
+#endif
 
-const MapEntityInit gSpriteInits_InteractablesMultiplayer[] = {
+const MapEntityInit gSpriteInits_CollectRingsInteractables[] = {
     CreateEntity_Toggle_PlayerLayer,
     CreateEntity_Toggle_PlayerLayer,
     CreateEntity_Spring_Normal_Up,
@@ -418,6 +416,7 @@ const MapEntityInit gSpriteInits_InteractablesMultiplayer[] = {
     CreateEntity_MultiplayerTeleport,
 };
 
+#ifndef COLLECT_RINGS_ROM
 const StagePreInitFunc gSpriteTileInits_PreStageEntry[] = {
     NULL,        NULL,        NULL, NULL, // Leaf Forest
     NULL,        NULL,        NULL, NULL, // Hot Crater
@@ -430,15 +429,13 @@ const StagePreInitFunc gSpriteTileInits_PreStageEntry[] = {
     NULL,        NULL,
 };
 
-#define READ_START_INDEX(p, hrc, rx, ry) (*((u32 *)((((u8 *)(p)) + (((hrc) * (ry)) * (sizeof(u32)))) + ((rx) * (sizeof(u32))))))
-
 void CreateStageEntitiesManager(void)
 {
     void *decompBuf;
     struct Task *t;
     EntitiesManager *em;
     if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
-        t = TaskCreate(Task_8008DCC, sizeof(EntitiesManager), 0x2000, 0, sub_80095FC);
+        t = TaskCreate(Task_8008DCC, sizeof(EntitiesManager), 0x2000, 0, TaskDestructor_EntitiesManager);
     } else {
         t = TaskCreate(Task_8008DCC, sizeof(EntitiesManager), 0x2000, 0, NULL);
     }
@@ -474,8 +471,9 @@ void CreateStageEntitiesManager(void)
     em->unk14 = 1;
     gEntitiesManagerTask = t;
 }
+#endif
 
-void SpawnMapEntities()
+static void SpawnMapEntities()
 {
 // Required to be here to help the stack match
 #ifndef NON_MATCHING
@@ -545,6 +543,7 @@ void SpawnMapEntities()
         while (Q(regionY) < (u32)range.yHigh && regionY < v_regionCount) {
             regionX = I(range.xLow);
             while (Q(regionX) < (u32)range.xHigh && regionX < h_regionCount) {
+#ifndef COLLECT_RINGS_ROM
                 if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
                     i = READ_START_INDEX(interactables, h_regionCount, regionX, regionY);
                     if (i != 0) {
@@ -588,7 +587,15 @@ void SpawnMapEntities()
                             }
                         }
                     }
-                } else {
+                } else
+#endif
+                {
+#ifndef NON_MATCHING
+                    // Only required in the collect rings rom for non matching
+                    if (0) {
+                        while (1) { }
+                    }
+#endif
                     i = READ_START_INDEX(interactables, h_regionCount, regionX, regionY);
                     if (i != 0) {
                         MapEntity *me = ((void *)interactables + (i - 8));
@@ -597,7 +604,7 @@ void SpawnMapEntities()
                                 s32 x = TO_WORLD_POS(me->x, regionX);
                                 s32 y = TO_WORLD_POS(me->y, regionY);
                                 if (x >= range.xLow && x <= range.xHigh && y >= range.yLow && y <= range.yHigh) {
-                                    gSpriteInits_InteractablesMultiplayer[me->index](me, regionX, regionY, i);
+                                    gSpriteInits_CollectRingsInteractables[me->index](me, regionX, regionY, i);
                                 }
                             }
                         }
@@ -605,7 +612,14 @@ void SpawnMapEntities()
                 }
                 regionX++;
             }
-            regionY++;
+#ifndef NON_MATCHING
+            // Only required in the collect rings rom for non matching
+            do {
+#endif
+                regionY++;
+#ifndef NON_MATCHING
+            } while (0);
+#endif
         }
         em->prevCamX = gCamera.x;
         em->prevCamY = gCamera.y;
@@ -614,7 +628,7 @@ void SpawnMapEntities()
     }
 }
 
-void Task_8008DCC(void)
+static void Task_8008DCC(void)
 {
 #ifndef NON_MATCHING
     struct Range *newrange2Ptr;
@@ -809,6 +823,7 @@ void Task_8008DCC(void)
             while (Q(regionY) < range1.yHigh && regionY < v_regionCount) {
                 regionX = I(range1.xLow);
                 while (Q(regionX) < range1.xHigh && regionX < h_regionCount) {
+#ifndef COLLECT_RINGS_ROM
                     if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
                         i = READ_START_INDEX(interactables, h_regionCount, regionX, regionY);
                         if (i != 0) {
@@ -851,7 +866,15 @@ void Task_8008DCC(void)
                                 }
                             }
                         }
-                    } else {
+                    } else
+#endif
+                    {
+#ifndef NON_MATCHING
+                        // Only required in the collect rings rom for non matching
+                        if (0) {
+                            while (1) { }
+                        }
+#endif
                         i = READ_START_INDEX(interactables, h_regionCount, regionX, regionY);
                         if (i != 0) {
                             MapEntity *me = ((void *)interactables + (i - 8));
@@ -860,7 +883,7 @@ void Task_8008DCC(void)
                                     CamCoord x = TO_WORLD_POS(me->x, regionX);
                                     CamCoord y = TO_WORLD_POS(me->y, regionY);
                                     if (x >= range1.xLow && x <= range1.xHigh && y >= range1.yLow && y <= range1.yHigh) {
-                                        gSpriteInits_InteractablesMultiplayer[me->index](me, regionX, regionY, i);
+                                        gSpriteInits_CollectRingsInteractables[me->index](me, regionX, regionY, i);
                                     }
                                 }
                             }
@@ -883,6 +906,7 @@ void Task_8008DCC(void)
 #endif
                 regionX = I(range2.xLow);
                 while (Q(regionX) < range2.xHigh && regionX < h_regionCount) {
+#ifndef COLLECT_RINGS_ROM
                     if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
                         i = READ_START_INDEX(interactables, h_regionCount, regionX, regionY);
                         if (i != 0) {
@@ -925,7 +949,15 @@ void Task_8008DCC(void)
                                 }
                             }
                         }
-                    } else {
+                    } else
+#endif
+                    {
+#ifndef NON_MATCHING
+                        // Only required in the collect rings rom for non matching
+                        if (0) {
+                            while (1) { }
+                        }
+#endif
                         i = READ_START_INDEX(interactables, h_regionCount, regionX, regionY);
                         if (i != 0) {
                             MapEntity *me = ((void *)interactables + (i - 8));
@@ -934,7 +966,7 @@ void Task_8008DCC(void)
                                     CamCoord x = TO_WORLD_POS(me->x, regionX);
                                     CamCoord y = TO_WORLD_POS(me->y, regionY);
                                     if (x >= range2.xLow && x <= range2.xHigh && y >= range2.yLow && y <= range2.yHigh) {
-                                        gSpriteInits_InteractablesMultiplayer[me->index](me, regionX, regionY, i);
+                                        gSpriteInits_CollectRingsInteractables[me->index](me, regionX, regionY, i);
                                     }
                                 }
                             }
@@ -950,6 +982,25 @@ void Task_8008DCC(void)
     }
 }
 
+#if COLLECT_RINGS_ROM
+void CreateStageEntitiesManager(void)
+{
+    void *decompBuf;
+    struct Task *t = TaskCreate(Task_8008DCC, sizeof(EntitiesManager), 0x2000, 0, NULL);
+    EntitiesManager *em = TASK_DATA(t);
+
+    decompBuf = (void *)EWRAM_START + 0x3F000;
+    RLUnCompWram(*(void **)((void *)EWRAM_START + 0x3300C), decompBuf);
+    em->interactables = decompBuf;
+
+    em->prevCamX = gCamera.x;
+    em->prevCamY = gCamera.y;
+    em->unk14 = 1;
+    gEntitiesManagerTask = t;
+}
+#endif
+
+#ifndef COLLECT_RINGS_ROM
 void CreateEnemyDefeatScoreAndManageLives(s16 x, s16 y)
 {
     u32 old;
@@ -975,7 +1026,7 @@ void TaskDestructor_80095E8(struct Task *t)
     VramFree(s->displayed.graphics.dest);
 }
 
-void sub_80095FC(struct Task *t)
+static void TaskDestructor_EntitiesManager(struct Task *t)
 {
     EntitiesManager *em = TASK_DATA(t);
     EwramFree(em->interactables);
@@ -983,3 +1034,5 @@ void sub_80095FC(struct Task *t)
     EwramFree(em->enemies);
     gEntitiesManagerTask = NULL;
 }
+
+#endif

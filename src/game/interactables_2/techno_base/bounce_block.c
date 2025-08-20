@@ -30,11 +30,13 @@ static void sub_8079D9C(Sprite_TecBaseNoteBlock *);
 static void sub_8079D00(Sprite_TecBaseNoteBlock *);
 static void sub_8079D30(Sprite_TecBaseNoteBlock *);
 
+ALIGNED(4)
 static const u16 sNoteBlockAssets[][3] = {
     { SA2_ANIM_NOTE_BLOCK_TEC_BASE, 0, 0x14C },
     { SA2_ANIM_NOTE_BLOCK_TEC_BASE, 1, 0x154 },
     { SA2_ANIM_NOTE_BLOCK_TEC_BASE, 2, 0x15C },
 };
+
 static const u16 gUnknown_080E001A[][4] = {
     { Q_8_8(6), Q_8_8(250), Q_8_8(250), Q_8_8(6) },
     { Q_8_8(7), Q_8_8(249), Q_8_8(249), Q_8_8(7) },
@@ -47,7 +49,7 @@ static const u16 sTecBasBlockSfx[] = {
     SE_TECHNO_BASE_COMMON,
 };
 
-void CreateEntity_NoteBlock(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 spriteY)
+void CreateEntity_BounceBlock(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 spriteY)
 {
     struct Task *t = TaskCreate(Task_NoteBlock, sizeof(Sprite_TecBaseNoteBlock), 0x2010, 0, TaskDestructor_NoteBlock);
     Sprite_TecBaseNoteBlock *noteBlock = TASK_DATA(t);
@@ -127,7 +129,7 @@ static bool32 sub_8079AC4(Sprite_TecBaseNoteBlock *noteBlock)
         if (temp3 < 49 && temp4 < 33) {
             s16 speedGround = gPlayer.qSpeedGround;
 
-            temp = sub_800CDBC(&noteBlock->s, noteBlock->unk3C, noteBlock->unk40, &gPlayer);
+            temp = Coll_Player_Interactable(&noteBlock->s, noteBlock->unk3C, noteBlock->unk40, &gPlayer);
             if (temp == 0) {
                 return 0;
             }

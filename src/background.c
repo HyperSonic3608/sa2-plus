@@ -117,7 +117,7 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
         sp00 = bg->xTiles;
 
         bgId = (bg->flags & BACKGROUND_FLAGS_MASK_BG_ID);
-        if (bgId > 1 && ((gDispCnt & 0x3) > DISPCNT_MODE_0)) {
+        if (bgId >= 2 && (gDispCnt & (DISPCNT_MODE_1 | DISPCNT_MODE_2)) > DISPCNT_MODE_0) {
             affine = (gBgCntRegs[bgId] >> 14);
             sp0C = (0x10 << affine);
             bytesPerTileIndex = 1;
@@ -138,6 +138,10 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
 #endif
             affine = (gBgCntRegs[bgId] >> 14);
             if ((affine == 1) || (affine == 3)) {
+                // HACK: fixes the course select map
+#if NON_MATCHING
+                sp0C = 64;
+#endif
                 sp04 = 0x800;
             }
             bytesPerTileIndex = 2;
@@ -220,7 +224,9 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
                             r4Ptr = (u16 *)(((u8 *)r4Ptr) - sb);
                         }
                     } else {
-                        // _08002DD4
+// _08002DD4
+// HACK: with this block enabled, the map is unreadable off the screen
+#ifndef NON_MATCHING
                         if ((affine & 1) && (bytesPerTileIndex == 2) && ((32 - bg->unk22) > 0)
                             && ((bg->targetTilesX + bg->unk22 - 32) > 0)) {
                             s32 vR2;
@@ -239,7 +245,9 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
                                 r4Ptr = CastPointer(r4Ptr, (sp00 * bytesPerTileIndex));
                             }
 
-                        } else {
+                        } else
+#endif
+                        {
                             // __08002E74
                             u32 r0Index = bg->unk20 * sp00 * bytesPerTileIndex;
                             void *r1Ptr = CastPointer(bg->layout, r0Index);
@@ -389,7 +397,7 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
                     r7Ptr = CastPointer(r7Ptr, bg->unk22 * bytesPerTileIndex);
 
                     if (((bg->targetTilesX + sp10) + 1) > bg->xTiles) {
-                        r2 = (bg->xTiles - 1);
+                        r2 = (bg->targetTilesX + sp10) - (bg->xTiles - 1);
                     } else {
                         r2 = 0;
                     }
@@ -438,7 +446,7 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
                         // _080031D0
                         if (bg->flags & BACKGROUND_FLAG_80) {
                             // _080031D8
-                            u32 index = ((sp14 + r5) - 1);
+                            u32 index = ((sp14 + r5) - 1) * bg->xTiles;
                             u16 *r0Ptr = (u16 *)&((u8 *)bg->layout)[index * bytesPerTileIndex];
                             u32 index2 = sp10;
                             u16 *r4Ptr = &r0Ptr[index2 * bytesPerTileIndex];
@@ -461,9 +469,10 @@ NONMATCH("asm/non_matching/engine/sub_8002B20.inc", bool32 sub_8002B20(void))
                             u16 *r4Ptr = CastPointer(r0Ptr, index2 * bg->xTiles);
 
                             // _08003298
-                            while (--r5 != 0) {
+                            while (r5-- != 0) {
+                                s32 var = r2 - 1;
                                 DmaCopy16(3, r4Ptr, r7Ptr, (s32)({
-                                              dmaSize = bg->targetTilesX - (r2 - 1);
+                                              dmaSize = bg->targetTilesX - var;
                                               dmaSize *= bytesPerTileIndex;
                                               dmaSize;
                                           }));
@@ -744,6 +753,7 @@ s32 sub_80036E0(Sprite *s)
     return 1;
 }
 
+#ifndef COLLECT_RINGS_ROM
 // (-1)
 // No differences to animCmd_GetTiles
 static AnimCmdResult animCmd_GetTiles_BG(void *cursor, Sprite *s)
@@ -1031,6 +1041,7 @@ void sub_8003EE4(u16 p0, s16 p1, s16 p2, s16 p3, s16 p4, s16 p5, s16 p6, BgAffin
         affine->y = (r1 + r3) + p4 * 256;
     }
 }
+#endif
 
 // (57.61%) https://decomp.me/scratch/6Xm6S
 // (58.36%) https://decomp.me/scratch/ClyxP
@@ -1235,7 +1246,11 @@ s32 RenderText(void *dest, const void *font, u16 x, u16 y, u8 bg, const char *te
         u16 *copyDest = dest + (i * TILE_SIZE_4BPP);
         u16 tile;
         u16 *addr;
+#if COLLECT_RINGS_ROM
+        CpuFastCopy(font + ((text[i] - 0x30) * TILE_SIZE_4BPP), copyDest, TILE_SIZE_4BPP);
+#else
         CpuFastCopy(font + (text[i] * TILE_SIZE_4BPP), copyDest, TILE_SIZE_4BPP);
+#endif
 
         tile = (copyDest - vramTiles) / 16u;
 #ifndef NON_MATCHING
@@ -1250,6 +1265,15 @@ s32 RenderText(void *dest, const void *font, u16 x, u16 y, u8 bg, const char *te
 
     return i * TILE_SIZE_4BPP;
 }
+
+#if COLLECT_RINGS_ROM
+UNUSED AnimCmdResult animCmd_GetTiles_BG(void *cursor, Sprite *s)
+{
+    ACmd_GetTiles *cmd = (ACmd_GetTiles *)cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+    return 1;
+}
+#endif
 
 // (-2)
 // This is different to animCmd_GetPalette in that:
@@ -1295,11 +1319,13 @@ static AnimCmdResult animCmd_PlaySoundEffect_BG(void *cursor, Sprite *s)
     ACmd_PlaySoundEffect *cmd = cursor;
     s->animCursor += AnimCommandSizeInWords(*cmd);
 
+#ifndef COLLECT_RINGS_ROM
     m4aSongNumStart(cmd->songId);
-
+#endif
     return 1;
 }
 
+#ifndef COLLECT_RINGS_ROM
 // (-7)
 static AnimCmdResult animCmd_TranslateSprite_BG(void *cursor, Sprite *s)
 {
@@ -1360,3 +1386,55 @@ static AnimCmdResult animCmd_SetOamOrder_BG(void *cursor, Sprite *s)
     s->animCursor += AnimCommandSizeInWords(*cmd);
     return 1;
 }
+#else
+static AnimCmdResult animCmd_AddHitbox_BG(void *cursor, Sprite *s)
+{
+    ACmd_Hitbox *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return 1;
+}
+
+static AnimCmdResult animCmd_TranslateSprite_BG(void *cursor, Sprite *s)
+{
+    ACmd_TranslateSprite *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return 1;
+}
+static AnimCmdResult animCmd_8_BG(void *cursor, Sprite *s)
+{
+    ACmd_8 *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return 1;
+}
+static AnimCmdResult animCmd_SetIdAndVariant_BG(void *cursor, Sprite *s)
+{
+    ACmd_SetIdAndVariant *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return -1;
+}
+static AnimCmdResult animCmd_10_BG(void *cursor, Sprite *s)
+{
+    ACmd_10 *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return (s32)cursor;
+}
+static AnimCmdResult animCmd_SetSpritePriority_BG(void *cursor, Sprite *s)
+{
+    ACmd_SetSpritePriority *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return 1;
+}
+static AnimCmdResult animCmd_SetOamOrder_BG(void *cursor, Sprite *s)
+{
+    ACmd_SetOamOrder *cmd = cursor;
+    s->animCursor += AnimCommandSizeInWords(*cmd);
+
+    return 1;
+}
+#endif

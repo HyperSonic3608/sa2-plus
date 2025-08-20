@@ -21,7 +21,7 @@ void Player_ClearMovestate_IsInScriptedSequence(void);
 void InitializePlayer(Player *p);
 void DestroyPlayerTasks(Player *player);
 void Player_TransitionCancelFlyingAndBoost(Player *p);
-void sub_8023B5C(Player *, s32);
+void Player_HandleSpriteYOffsetChange(Player *, s32);
 void sub_8023260(Player *);
 void sub_80232D0(Player *);
 void sub_8023610(Player *);
@@ -58,7 +58,11 @@ type8029A28 sub_8029A74(Player *player, u8 *p1, type8029A28 *out);
 bool32 Player_TryJump(Player *);
 bool32 Player_TryAttack(Player *);
 
+#ifndef COLLECT_RINGS_ROM
 #define GET_CHARACTER_ANIM(player) (player->anim - gPlayerCharacterIdleAnims[player->character])
+#else
+#define GET_CHARACTER_ANIM(player) (player->anim - gPlayerCharacterIdleAnims[0])
+#endif
 
 #define PLAYERFN_SET(proc)          gPlayer.callback = proc;
 #define PLAYERFN_CALL(proc, player) proc(player);
@@ -70,18 +74,18 @@ bool32 Player_TryAttack(Player *);
 
 #define PLAYERFN_SET_SHIFT_OFFSETS(player, x, y)                                                                                           \
     {                                                                                                                                      \
-        player->spriteOffsetX = x;                                                                                                         \
-        player->spriteOffsetY = y;                                                                                                         \
+        (player)->spriteOffsetX = x;                                                                                                       \
+        (player)->spriteOffsetY = y;                                                                                                       \
     }
 #define PLAYERFN_CHANGE_SHIFT_OFFSETS(player, x, y)                                                                                        \
     {                                                                                                                                      \
-        sub_8023B5C(player, y);                                                                                                            \
+        Player_HandleSpriteYOffsetChange(player, y);                                                                                       \
         PLAYERFN_SET_SHIFT_OFFSETS(player, x, y)                                                                                           \
     }
 
 // TODO: This is unaligned in-ROM.
 //       Can we somehow change this to be using a struct instead?
 extern const u16 sCharStateAnimInfo[][2];
-extern const AnimId gPlayerCharacterIdleAnims[NUM_CHARACTERS];
+extern const AnimId gPlayerCharacterIdleAnims[];
 
 #endif // GUARD_STAGE_PLAYER_H

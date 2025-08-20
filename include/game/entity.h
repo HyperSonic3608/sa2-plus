@@ -8,7 +8,7 @@
 #include "game/sa1_sa2_shared/globals.h"
 #include "game/sa1_sa2_shared/collision.h"
 
-#include "game/stage/collision.h"
+#include "game/stage/terrain_collision.h"
 #include "game/player_callbacks.h"
 #include "game/stage/player.h"
 #include "game/stage/camera.h"
@@ -57,10 +57,6 @@ typedef struct {
     SpriteBase base;
     Sprite s;
 } EnemyBase;
-
-u32 sub_800CDBC(Sprite *, s32, s32, Player *);
-
-u32 sub_800DF38(Sprite *, s32, s32, Player *);
 
 // After a MapEntity is initialized, its x-value in the layout-data gets set to -2.
 // TODO:
@@ -196,13 +192,13 @@ u32 sub_800DF38(Sprite *, s32, s32, Player *);
     }
 
 #define ENEMY_DESTROY_IF_PLAYER_HIT(_s, _pos)                                                                                              \
-    if (sub_800C4FC(_s, _pos.x, _pos.y, 0) == TRUE) {                                                                                      \
+    if (Coll_Player_Enemy_Attack(_s, _pos.x, _pos.y, 0) == TRUE) {                                                                         \
         TaskDestroy(gCurTask);                                                                                                             \
         return;                                                                                                                            \
     }
 
 #define ENEMY_DESTROY_IF_PLAYER_HIT_2(_s, _pos)                                                                                            \
-    if (sub_800C4FC(_s, _pos.x, _pos.y, 0)) {                                                                                              \
+    if (Coll_Player_Enemy_Attack(_s, _pos.x, _pos.y, 0)) {                                                                                 \
         TaskDestroy(gCurTask);                                                                                                             \
         return;                                                                                                                            \
     }

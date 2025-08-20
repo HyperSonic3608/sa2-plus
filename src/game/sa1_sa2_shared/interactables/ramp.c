@@ -27,6 +27,7 @@ static void TaskDestructor_Ramp(struct Task *);
 void CreateEntity_Ramp(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 spriteY)
 {
     u8 temp;
+    u32 r0;
     s32 temp2;
     struct Task *t = TaskCreate(Task_Ramp, sizeof(Sprite_Ramp), 0x2010, 0, TaskDestructor_Ramp);
     Sprite_Ramp *ramp = TASK_DATA(t);
@@ -48,9 +49,11 @@ void CreateEntity_Ramp(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 s
     s->graphics.dest = VramMalloc(20);
     s->graphics.anim = SA2_ANIM_RAMP;
 
+#ifndef COLLECT_RINGS_ROM
     if (LEVEL_TO_ZONE(gCurrentLevel) == ZONE_6) {
         s->graphics.anim = SA2_ANIM_RAMP_TECHNO_BASE;
     }
+#endif
 
     // required for match
     temp2 = temp;
@@ -66,7 +69,10 @@ void CreateEntity_Ramp(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u8 s
     s->hitboxes[0].index = -1;
     s->frameFlags = (SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG(MOSAIC, 1));
 
-    if (temp & 0x2) {
+    // Required for collect rings match
+    r0 = 0x2;
+    r0 &= temp;
+    if (r0) {
         SPRITE_FLAG_SET(s, X_FLIP);
     }
     UpdateSpriteAnimation(s);
@@ -101,7 +107,7 @@ static void Task_Ramp(void)
             var = TRUE;
         }
 
-        r1 = sub_800CDBC(s, screenX, screenY, player);
+        r1 = Coll_Player_Interactable(s, screenX, screenY, player);
         if (r1 != 0) {
             if (((r1 & 0x80000) && (ramp->unk3C & 2) && (player->qSpeedAirX > -1))
                 || ((r1 & 0x40000) && (!(ramp->unk3C & 2)) && (player->qSpeedAirX < 1))) {

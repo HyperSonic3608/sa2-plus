@@ -66,7 +66,8 @@ void sub_80870E8(void)
     effect->unk0 += 1;
     if (effect->unk0 > 160) {
         if (!(gPlayer.moveState & (MOVESTATE_IN_SCRIPTED | MOVESTATE_IA_OVERRIDE | MOVESTATE_IGNORE_INPUT))
-            && !(gPlayer.itemEffect & (PLAYER_ITEM_EFFECT__INVINCIBILITY | PLAYER_ITEM_EFFECT__TELEPORT)) && sub_800CBA4(&gPlayer) != 0) {
+            && !(gPlayer.itemEffect & (PLAYER_ITEM_EFFECT__INVINCIBILITY | PLAYER_ITEM_EFFECT__TELEPORT))
+            && Coll_DamagePlayer(&gPlayer) != 0) {
             m4aSongNumStart(SE_SPIKES);
         }
         gBldRegs.bldY = 0;
@@ -84,10 +85,10 @@ void sub_80871C4(s16 a, s16 b, s16 c)
     u8 i;
 
     u8 *unk1884 = gBgOffsetsHBlank;
-    gUnknown_03002A80 = 2;
-    gUnknown_03002878 = (void *)REG_ADDR_WIN0H;
+    gHBlankCopySize = 2;
+    gHBlankCopyTarget = (void *)REG_ADDR_WIN0H;
 
-    gFlags |= 0x4;
+    gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
 
     d = b - c;
     f = (b + c);
@@ -179,4 +180,4 @@ void InitGraphicsForMPAttackEffect(void)
     gWinRegs[2] = WIN_RANGE(0, DISPLAY_HEIGHT);
 }
 
-void TaskDestructor_MPAttackEffect(UNUSED struct Task *t) { gFlags &= ~0x4; }
+void TaskDestructor_MPAttackEffect(UNUSED struct Task *t) { gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY; }

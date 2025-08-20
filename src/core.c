@@ -10,6 +10,9 @@
 #include "lib/m4a/m4a.h"
 #include "lib/agb_flash/agb_flash.h"
 
+// TODO: Better name
+#define VBLANK_FUNC_ID_NONE 0xFF
+
 // TODO: the order of these vars has
 // been shuffled due to compilation losses.
 // It's possible to use `ramscrgen` to reorder
@@ -44,7 +47,7 @@ BgAffineReg gBgAffineRegs[NUM_AFFINE_BACKGROUNDS] ALIGNED(8) = {};
 void *gVramHeapStartAddr = NULL;
 u16 gUnknown_03001944 ALIGNED(4) = 0;
 u8 gNumVBlankIntrs ALIGNED(4) = 0;
-u16 gUnknown_0300194C ALIGNED(4) = 0;
+s16 gUnknown_0300194C ALIGNED(4) = 0;
 
 u32 gMultiSioStatusFlags = 0;
 bool8 gMultiSioEnabled = FALSE;
@@ -86,21 +89,19 @@ struct GraphicsData gVramGraphicsCopyQueueBuffer[32] = {};
 #endif
 struct GraphicsData *gVramGraphicsCopyQueue[] ALIGNED(16) = {};
 
-u16 gUnknown_03002820 = 0;
+s16 gUnknown_03002820 = 0;
 s16 gBgScrollRegs[][2] ALIGNED(16) = {};
 u16 gDispCnt = 0;
 u8 gKeysContinuedRepeatIntervals[10] ALIGNED(16) = {};
 union MultiSioData gMultiSioSend ALIGNED(8) = {};
 u8 gUnknown_03002874 = 0;
 
-// gHBlankCopyTarget
-void *gUnknown_03002878 ALIGNED(4) = NULL;
+void *gHBlankCopyTarget ALIGNED(4) = NULL;
 
 u8 gBackgroundsCopyQueueIndex = 0;
 u16 gBgPalette[] ALIGNED(16) = {};
 
-// gHBlankCopySize
-u8 gUnknown_03002A80 ALIGNED(4) = 0;
+u8 gHBlankCopySize ALIGNED(4) = 0;
 
 u8 gVramGraphicsCopyQueueIndex ALIGNED(4) = 0;
 u16 gPrevInput ALIGNED(4) = 0;
@@ -132,6 +133,8 @@ const u8 *gInputPlaybackData = NULL;
 bool8 gExecSoundMain ALIGNED(4) = FALSE;
 s32 gPseudoRandom = 0;
 
+extern void IntrMain(void);
+
 static void UpdateScreenDma(void);
 static void UpdateScreenCpuSet(void);
 static void ClearOamBufferCpuSet(void);
@@ -151,8 +154,6 @@ static void Dma2Intr(void);
 static void Dma3Intr(void);
 static void KeypadIntr(void);
 static void GamepakIntr(void);
-
-extern void IntrMain(void);
 
 // Warning: array contains an empty slot which would have
 // been used for a Timer3Intr function
@@ -177,16 +178,15 @@ IntrFunc const gIntrTableTemplate[] = {
     NULL,
 };
 
-// TODO: Better name
-#define VBLANK_FUNC_ID_NONE 0xFF
-
 // Result of these:
 // FALSE: Not currently in vblank
 // TRUE:  Currently in VBlank /
 static VBlankFunc const sVblankFuncs[] = {
     ProcessVramGraphicsCopyQueue,
     sub_8004010,
+#ifndef COLLECT_RINGS_ROM
     sub_80039E4,
+#endif
     sub_8002B20,
 };
 
@@ -198,11 +198,12 @@ void EngineInit(void)
     REG_WAITCNT = WAITCNT_PREFETCH_ENABLE | WAITCNT_WS0_S_1 | WAITCNT_WS0_N_3;
     gFlags = 0;
     gFlagsPreVBlank = 0;
-
+#ifndef COLLECT_RINGS_ROM
     if ((REG_RCNT & 0xC000) != 0x8000) {
         gFlags = FLAGS_200;
         DmaCopy16(3, (void *)OBJ_VRAM0, EWRAM_START + 0x3B000, 0x5000);
     }
+#endif
 
     // Skip the intro if these
     // 4 buttons are pressed
@@ -212,7 +213,11 @@ void EngineInit(void)
         gFlags &= ~FLAGS_SKIP_INTRO;
     }
 
+#if COLLECT_RINGS_ROM
+    DmaCopy16(3, (void *)OBJ_VRAM0, (void *)0x0203b000, 0x5000);
+#else
     DmaFill32(3, 0, (void *)VRAM, VRAM_SIZE);
+#endif
     DmaFill32(3, 0, (void *)OAM, OAM_SIZE);
     DmaFill32(3, 0, (void *)PLTT, PLTT_SIZE);
 
@@ -297,9 +302,11 @@ void EngineInit(void)
         gKeysContinuedRepeatIntervals[i] = 8;
     }
 
+#ifndef COLLECT_RINGS_ROM
     gInputRecorder.mode = RECORDER_DISABLED;
     gPhysicalInput = 0;
     gInputPlaybackData = NULL;
+#endif
     gFrameCount = 0;
 
 #ifdef BUG_FIX
@@ -315,8 +322,8 @@ void EngineInit(void)
 
     gBgOffsetsHBlank = gBgOffsetsBuffer[0];
     gUnknown_030022AC = gBgOffsetsBuffer[1];
-    gUnknown_03002878 = NULL;
-    gUnknown_03002A80 = 0;
+    gHBlankCopyTarget = NULL;
+    gHBlankCopySize = 0;
     gNumHBlankCallbacks = 0;
     gNumHBlankIntrs = 0;
 
@@ -335,7 +342,9 @@ void EngineInit(void)
     gExecSoundMain = TRUE;
 
     TasksInit();
+#ifndef COLLECT_RINGS_ROM
     EwramInitHeap();
+#endif
 
     // VRAM_TILE_SEGMENTS / 256 max useable segments
     gVramHeapMaxTileSlots = VRAM_TILE_SEGMENTS * VRAM_TILE_SLOTS_PER_SEGMENT;
@@ -343,12 +352,16 @@ void EngineInit(void)
 
     VramResetHeapState();
 
+#if COLLECT_RINGS_ROM
+    gFlags |= FLAGS_NO_FLASH_MEMORY;
+#else
     errorIdentifying = IdentifyFlash();
     if (errorIdentifying) {
         gFlags |= FLAGS_NO_FLASH_MEMORY;
     } else {
         SetFlashTimerIntr(1, &gIntrTable[5]);
     }
+#endif
 
     // Setup interrupt vector
 #if PLATFORM_GBA
@@ -401,16 +414,17 @@ void EngineMainLoop(void)
 #if (ENGINE >= ENGINE_3)
         gNextFreeAffineIndex = 0;
 #endif
-
+#ifndef COLLECT_RINGS_ROM
         if (gFlags & FLAGS_4000) {
             UpdateScreenCpuSet();
 
             if (!(gFlags & FLAGS_PAUSE_GAME)) {
                 ClearOamBufferCpuSet();
             }
-        } else {
+        } else
+#endif
+        {
             UpdateScreenDma();
-
             if (!(gFlags & FLAGS_PAUSE_GAME)) {
                 ClearOamBufferDma();
             }
@@ -469,9 +483,9 @@ static void UpdateScreenDma(void)
         gNumHBlankIntrs = 0;
     }
 
-    if (gFlags & FLAGS_4) {
+    if (gFlags & FLAGS_EXECUTE_HBLANK_COPY) {
 
-        DmaCopy16(3, gBgOffsetsHBlank, gUnknown_03002878, gUnknown_03002A80);
+        DmaCopy16(3, gBgOffsetsHBlank, gHBlankCopyTarget, gHBlankCopySize);
     }
 
     if (sLastCalledVblankFuncId == VBLANK_FUNC_ID_NONE) {
@@ -554,7 +568,7 @@ static void ClearOamBufferDma(void)
         }
 #endif
     }
-    gFlags &= ~FLAGS_4;
+    gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
     DmaFill16(3, 0x200, gOamBuffer + 0x00, 0x100);
     DmaFill16(3, 0x200, gOamBuffer + 0x20, 0x100);
     DmaFill16(3, 0x200, gOamBuffer + 0x40, 0x100);
@@ -564,6 +578,7 @@ static void ClearOamBufferDma(void)
     gFlags &= ~FLAGS_10;
 }
 
+#ifndef COLLECT_RINGS_ROM
 static void UpdateScreenCpuSet(void)
 {
     u8 i, j = 0;
@@ -638,6 +653,7 @@ static void UpdateScreenCpuSet(void)
         }
     }
 }
+#endif
 
 static void VBlankIntr(void)
 {
@@ -647,20 +663,20 @@ static void VBlankIntr(void)
     INTR_CHECK |= 1;
     gExecSoundMain = TRUE;
 
-    if (gFlagsPreVBlank & FLAGS_4) {
+    if (gFlagsPreVBlank & FLAGS_EXECUTE_HBLANK_COPY) {
         REG_IE |= INTR_FLAG_HBLANK;
         DmaWait(0);
 
-        DmaCopy16(0, gBgOffsetsHBlank, gUnknown_03002878, gUnknown_03002A80);
-        DmaSet(0, gBgOffsetsHBlank + gUnknown_03002A80, gUnknown_03002878,
-               ((DMA_ENABLE | DMA_START_HBLANK | DMA_REPEAT | DMA_DEST_RELOAD) << 16) | (gUnknown_03002A80 >> 1));
+        DmaCopy16(0, gBgOffsetsHBlank, gHBlankCopyTarget, gHBlankCopySize);
+        DmaSet(0, gBgOffsetsHBlank + gHBlankCopySize, gHBlankCopyTarget,
+               ((DMA_ENABLE | DMA_START_HBLANK | DMA_REPEAT | DMA_DEST_RELOAD) << 16) | (gHBlankCopySize >> 1));
 
-    } else if (gUnknown_03002878) {
+    } else if (gHBlankCopyTarget) {
         REG_IE &= ~INTR_FLAG_HBLANK;
-        gUnknown_03002878 = NULL;
+        gHBlankCopyTarget = NULL;
     }
 
-    if (gFlagsPreVBlank & FLAGS_40) {
+    if (gFlagsPreVBlank & FLAGS_EXECUTE_HBLANK_COPY0) {
         REG_DISPSTAT |= DISPSTAT_VCOUNT_INTR;
         REG_DISPSTAT &= 0xff;
         REG_DISPSTAT |= gUnknown_03002874 << 8;
@@ -673,6 +689,7 @@ static void VBlankIntr(void)
         REG_IE &= ~INTR_FLAG_VCOUNT;
     }
 
+#ifndef COLLECT_RINGS_ROM
     if (!(gFlagsPreVBlank & FLAGS_8000)) {
         keys = ~REG_KEYINPUT & (START_BUTTON | SELECT_BUTTON | B_BUTTON | A_BUTTON);
         if (keys == (START_BUTTON | SELECT_BUTTON | B_BUTTON | A_BUTTON)) {
@@ -682,7 +699,7 @@ static void VBlankIntr(void)
             REG_DISPSTAT = DISPCNT_MODE_0;
             m4aMPlayAllStop();
             m4aSoundVSyncOff();
-            gFlags &= ~FLAGS_4;
+            gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
             DmaStop(0);
             DmaStop(1);
             DmaStop(2);
@@ -691,6 +708,7 @@ static void VBlankIntr(void)
             SoftReset(0x20);
         }
     }
+#endif
 
     gFrameCount++;
     REG_IF = INTR_FLAG_VBLANK;
@@ -768,7 +786,7 @@ static bool32 ProcessVramGraphicsCopyQueue(void)
     return TRUE;
 }
 
-static void GetInput(void)
+void GetInput(void)
 {
     s8 i;
     u8 *repeatKeyCounters = gRepeatedKeysTestCounter, *firstIntervals = gKeysFirstRepeatIntervals,
@@ -782,11 +800,13 @@ static void GetInput(void)
     // to exit the demo
     gPhysicalInput = gInput;
 
+#ifndef COLLECT_RINGS_ROM
     if (gInputRecorder.mode == RECORDER_RECORD) {
         InputRecorderWrite(gInput);
     } else if (gInputRecorder.mode == RECORDER_PLAYBACK) {
         gInput = InputRecorderRead();
     }
+#endif
 
     gPressedKeys = (gInput ^ gPrevInput) & gInput;
     gReleasedKeys = (gInput ^ gPrevInput) & gPrevInput;
@@ -874,6 +894,7 @@ static void ClearOamBufferCpuSet(void)
     gFlags &= ~FLAGS_10;
 }
 #else
+#ifndef COLLECT_RINGS_ROM
 static void ClearOamBufferCpuSet(void)
 {
     gNumHBlankCallbacks = 0;
@@ -893,4 +914,5 @@ static void ClearOamBufferCpuSet(void)
     gNumVBlankCallbacks = 0;
     gFlags &= ~FLAGS_10;
 }
+#endif
 #endif

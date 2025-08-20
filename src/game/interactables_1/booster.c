@@ -113,17 +113,14 @@ void Task_Interactable_Booster(void)
     s->x = screenX - gCamera.x;
     s->y = screenY - gCamera.y;
 
-    if (!(gPlayer.moveState & (MOVESTATE_DEAD | MOVESTATE_IN_AIR)) && (sub_800C204(s, screenX, screenY, 0, &gPlayer, 0) == 1)) {
+    if (!(gPlayer.moveState & (MOVESTATE_DEAD | MOVESTATE_IN_AIR))
+        && (Coll_Player_Entity_HitboxN(s, screenX, screenY, 0, &gPlayer, 0) == 1)) {
         Player_TransitionCancelFlyingAndBoost(&gPlayer);
 
         if (gPlayer.moveState & MOVESTATE_4) {
-            sub_8023B5C(&gPlayer, 9);
-            gPlayer.spriteOffsetX = 6;
-            gPlayer.spriteOffsetY = 9;
+            PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 9);
         } else {
-            sub_8023B5C(&gPlayer, 14);
-            gPlayer.spriteOffsetX = 6;
-            gPlayer.spriteOffsetY = 14;
+            PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
         }
 
         m4aSongNumStart(SE_SPEED_BOOSTER);

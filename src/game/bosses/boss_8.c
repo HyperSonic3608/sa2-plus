@@ -1,5 +1,9 @@
+#if TAS_TESTING
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "global.h"
-#include "core.h"
 #include "flags.h"
 #include "task.h"
 #include "trig.h"
@@ -20,11 +24,6 @@
 #include "game/stage/game_7.h"
 #include "game/stage/screen_fade.h"
 #include "game/stage/screen_shake.h"
-
-#if TAS_TESTING
-#include <stdio.h>
-#include <stdlib.h>
-#endif
 
 #include "constants/animations.h"
 #include "constants/char_states.h"
@@ -421,7 +420,7 @@ static void Task_SuperEggRoboZTowersMain(void)
     }
 
     if (I(gPlayer.qWorldY) < 133) {
-        sub_800CBA4(&gPlayer);
+        Coll_DamagePlayer(&gPlayer);
     }
 
     if (towers->unk15F == 0 && towers->boss->livesCockpit == 0) {
@@ -471,7 +470,7 @@ static void sub_8049F1C(SuperEggRoboZTowers *towers, u8 towerIndex)
     }
 
     if (!(gPlayer.moveState & MOVESTATE_IA_OVERRIDE)) {
-        u32 result = sub_800CCB8(prop, pos.x, pos.y, &gPlayer);
+        u32 result = Coll_Player_Platform(prop, pos.x, pos.y, &gPlayer);
 
         if (result & 0x10000) {
             gPlayer.qWorldY += Q(result << 0x10) >> 0x10;
@@ -503,7 +502,7 @@ static void sub_804A070(SuperEggRoboZTowers *towers, u8 towerIndex)
     s->y = pos.y - gCamera.y;
 
     if (!(gPlayer.moveState & MOVESTATE_IA_OVERRIDE)) {
-        s32 result = sub_800C204(s, pos.x, pos.y, 0, &gPlayer, 0);
+        s32 result = Coll_Player_Entity_HitboxN(s, pos.x, pos.y, 0, &gPlayer, 0);
         if (result != 0) {
             gPlayer.qWorldY -= Q(8);
             gPlayer.qSpeedAirY = -Q(3.5);
@@ -586,7 +585,7 @@ static void sub_804A1C0(SuperEggRoboZTowers *towers, u8 towerIndex)
     }
 
     if (!(gPlayer.moveState & MOVESTATE_IA_OVERRIDE)) {
-        u32 result = sub_800CCB8(s, pos.x, pos.y, &gPlayer);
+        u32 result = Coll_Player_Platform(s, pos.x, pos.y, &gPlayer);
 
         if (result & 0x10000) {
             gPlayer.qWorldY += Q(result << 0x10) >> 0x10;
@@ -636,7 +635,7 @@ static void sub_804A398(SuperEggRoboZTowers *towers, u8 towerIndex)
     }
 
     if (!(gPlayer.moveState & MOVESTATE_IA_OVERRIDE)) {
-        u32 result = sub_800CCB8(s, pos.x, pos.y, &gPlayer);
+        u32 result = Coll_Player_Platform(s, pos.x, pos.y, &gPlayer);
 
         if (result & 0x10000) {
             gPlayer.qWorldY += Q(result << 0x10) >> 0x10;
@@ -689,7 +688,7 @@ static void sub_804A53C(SuperEggRoboZTowers *towers, u8 towerIndex)
     }
 
     if (!(gPlayer.moveState & MOVESTATE_IA_OVERRIDE)) {
-        u32 result = sub_800CCB8(s, pos.x, pos.y, &gPlayer);
+        u32 result = Coll_Player_Platform(s, pos.x, pos.y, &gPlayer);
 
         if (result & 0x10000) {
             gPlayer.qWorldY += Q(result << 0x10) >> 0x10;
@@ -922,7 +921,7 @@ void Task_804AB24(void)
     // TODO: maybe these are macros or inline functions?
     p = &gPlayer;
     if ((I(p->qWorldY) > 184) && (I(p->qWorldX) >= 43034)) {
-        sub_800CBA4(p);
+        Coll_DamagePlayer(p);
         // These are just hacks to make the read use the right register
         // if we use c it uses r2 on some of these
 #ifndef NON_MATCHING
@@ -954,7 +953,7 @@ void Task_804AB24(void)
 
     p = &gPlayer;
     if (I(p->qWorldX) >= 43088) {
-        sub_800CBA4(p);
+        Coll_DamagePlayer(p);
 #ifndef NON_MATCHING
         asm("mov r1, %2\n"
             "ldrsh %0, [%1, r1]"
@@ -986,7 +985,7 @@ void Task_804AB24(void)
         u8 arm;
         // _0804ABF2
 
-        gFlags &= ~FLAGS_4;
+        gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
         gCurTask->main = Task_804AD68;
         boss->unk14 = 0xFF;
 
@@ -1068,7 +1067,7 @@ void sub_804AE40(SuperEggRoboZ *boss)
         if (boss->unkE == 0) {
             gBldRegs.bldY = 0;
             boss->fade.brightness = 0;
-            gFlags &= ~FLAGS_4;
+            gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
         }
         boss->unkE = 2;
     }
@@ -1089,12 +1088,12 @@ void sub_804AE40(SuperEggRoboZ *boss)
             }
             // _0804AEC2
 
-            gFlags &= ~FLAGS_4;
+            gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
         } else {
             // _0804AED4
             if (--boss->unk12 == 0) {
                 u32 livesCockpit;
-                gFlags &= ~FLAGS_4;
+                gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
 
                 boss->fade.brightness = Q(32);
                 UpdateScreenFade(&boss->fade);
@@ -1230,7 +1229,7 @@ static u8 sub_804B0EC(SuperEggRoboZ *boss, u8 arm)
     r4 = SQUARE(r4);
 
     if ((r5 + r4) < 200) {
-        sub_800CBA4(&gPlayer);
+        Coll_DamagePlayer(&gPlayer);
 
         boss->unk40[arm] = 1;
 
@@ -1548,27 +1547,18 @@ static void sub_804BAC0(SuperEggRoboZ *boss, u8 arm)
     }
 }
 
-// (81.31%) https://decomp.me/scratch/432q4
-NONMATCH("asm/non_matching/game/bosses/boss_8__sub_804BC44.inc", void sub_804BC44(SuperEggRoboZ *boss, u8 arm))
+void sub_804BC44(SuperEggRoboZ *boss, u8 arm)
 {
     ExplosionPartsInfo info;
-    s32 speed0;
     s32 x, y;
     u8 i, j;
-#ifndef NON_MATCHING
-    register u16 *r3 asm("r3");
-#else
-    u16 *r3;
-#endif
 
     boss->qUnk18[arm].x -= ((COS(boss->rotation2[arm]) * 31) >> 10);
     boss->qUnk18[arm].y -= ((SIN(boss->rotation2[arm]) * 31) >> 10);
 
-    r3 = &boss->unk30[arm];
-    boss->rotation[arm] = ((*r3 * 4 + boss->rotation[arm]) & ONE_CYCLE);
+    boss->rotation[arm] = (boss->rotation[arm] + boss->unk30[arm] * 4) & ONE_CYCLE;
 
-    if (--boss->rotation2[arm] == 0) {
-        // _0804BCD6
+    if (--boss->unk30[arm] == 0) {
         x = boss->qPos.x + boss->qUnk18[arm].x + gUnknown_080D8888[arm][0];
         y = boss->qPos.y + boss->qUnk18[arm].y + gUnknown_080D8888[arm][1];
 
@@ -1577,25 +1567,11 @@ NONMATCH("asm/non_matching/game/bosses/boss_8__sub_804BC44.inc", void sub_804BC4
 
         for (i = 0; i < 3; i++) {
             for (j = 0; j < 3; j++) {
-                s32 index;
-
-                index = (boss->rotation[arm] - (SIN_PERIOD / 4));
-                info.spawnX = I(x) - ((COS(index & ONE_CYCLE) * (i - 1)) >> 11);
-                index = (boss->rotation[arm] - (SIN_PERIOD / 4));
-                info.spawnY = I(y) - ((SIN(index & ONE_CYCLE) * (i - 1)) >> 11);
-
+                info.spawnX = I(x) - ((COS((boss->rotation2[arm] - (SIN_PERIOD / 4)) & ONE_CYCLE) * (i - 1)) >> 11);
+                info.spawnY = I(y) - ((SIN((boss->rotation2[arm] - (SIN_PERIOD / 4)) & ONE_CYCLE) * (i - 1)) >> 11);
                 info.velocity = 0;
-                info.rotation = (boss->rotation[arm] + 576 - boss->rotation2[arm]) & ONE_CYCLE;
-                speed0 = (Q(2) + (j * Q(0.5)));
-
-                if ((1 - i) >= 0) {
-                    s32 speedI = ((1 - i) * 3);
-                    info.speed = speed0 - (speedI * Q(0.125));
-                } else {
-                    s32 speedI = ((i - 1) * 3);
-                    info.speed = speed0 - (speedI * Q(0.125));
-                }
-
+                info.rotation = (boss->rotation2[arm] + 576 - ((i * 2) + i + j) * (32)) & ONE_CYCLE;
+                info.speed = (Q(2) + (j * Q(0.5))) - ((ABS(1 - i) * 3) * Q(0.125));
                 info.vram = boss->tilesCloud;
                 info.anim = SA2_ANIM_SUPER_EGG_ROBO_Z_CLOUD;
                 info.variant = 0;
@@ -1605,12 +1581,11 @@ NONMATCH("asm/non_matching/game/bosses/boss_8__sub_804BC44.inc", void sub_804BC4
             }
         }
 
-        boss->rotation2[arm] = boss->rotation[arm];
+        boss->rotation[arm] = boss->rotation2[arm];
         boss->unk3C[arm] = 0;
         boss->unk30[arm] = 300;
     }
 }
-END_NONMATCH
 
 static void sub_804BE6C(SuperEggRoboZ *boss, u8 arm)
 {
@@ -1713,55 +1688,53 @@ static void sub_804C080(SuperEggRoboZ *boss)
     }
 }
 
-// (87.37%) https://decomp.me/scratch/98Mjg
-NONMATCH("asm/non_matching/game/bosses/boss_8__sub_804C240.inc", void sub_804C240(SuperEggRoboZ *boss, u8 arm))
+void sub_804C240(SuperEggRoboZ *boss, u8 arm)
 {
     ExplosionPartsInfo info;
-    s32 x, y;
-    s32 index;
+    s32 chance;
 
     if (boss->unk42[arm] != 0) {
         return;
     }
 
-    y = I(boss->qPos.y + boss->qUnk18[arm].y + gUnknown_080D8888[arm][1]);
-
-    if (y > 300) {
+    if (I(boss->qPos.y + boss->qUnk18[arm].y + gUnknown_080D8888[arm][1]) > 300) {
         boss->unk42[arm] = 1;
         return;
     }
 
-    boss->rotation[arm] = (boss->rotation[arm] + 800);
-    boss->rotation[arm] &= ONE_CYCLE;
+    chance = 0x1F;
+    boss->rotation[arm] = (boss->rotation[arm] + 800) & ONE_CYCLE;
     boss->qUnk34[arm][1] += Q(0.125);
     boss->qUnk18[arm].x += boss->qUnk34[arm][0];
     boss->qUnk18[arm].y += boss->qUnk34[arm][1];
 
     if ((gStageTime & 0x3) == 0) {
-        s32 rand;
-        x = boss->qPos.x;
-        x += gUnknown_080D8888[arm][0];
-        x += boss->qUnk18[arm].x;
-        y = boss->qPos.y;
-        y += boss->qUnk18[arm].y;
-        y += gUnknown_080D8888[arm][1];
+        s32 x, y;
+#ifndef NON_MATCHING
+        s32 one = 1;
+#endif
+
+        x = boss->qPos.x + boss->qUnk18[arm].x + gUnknown_080D8888[arm][0];
+        y = boss->qPos.y + boss->qUnk18[arm].y + gUnknown_080D8888[arm][1];
         info.spawnX = I(x);
         info.spawnY = I(y);
         info.velocity = 0;
         info.rotation = sub_8004418(-(boss->qUnk34[arm][1] >> 3), -(boss->qUnk34[arm][0] >> 3));
 
-        rand = PseudoRandom32();
-        index = (info.rotation + (rand & 0x1F));
-        info.rotation = (index - 0x10) & ONE_CYCLE;
+        info.rotation = ({ ((PseudoRandom32() & chance) + info.rotation) - 0x10; })
+#ifndef NON_MATCHING
+            & (SIN_PERIOD - one);
+#else
+            & ONE_CYCLE;
+#endif
         info.speed = SIN_24_8((gStageTime * 16) & ONE_CYCLE) + Q(3);
-        info.vram = (OBJ_VRAM0 + 0x12980);
+        info.vram = (OBJ_VRAM0 + 0x2980);
         info.anim = SA2_ANIM_EXPLOSION;
         info.variant = 0;
         info.unk4 = 0;
         CreateBossParticleStatic(&info, &boss->unkC);
     }
 }
-END_NONMATCH
 
 static void sub_804C3AC(SuperEggRoboZ *boss)
 {
@@ -1943,10 +1916,10 @@ static void sub_804C830(SuperEggRoboZ *boss)
 
         s = &boss->bsHead.s;
         p = &gPlayer;
-        if (IsColliding_Cheese(s, headPos.x, headPos.y, 0, p) == TRUE) {
+        if (Coll_Cheese_Enemy_Attack(s, headPos.x, headPos.y, 0, p) == TRUE) {
             Boss8_HitCockpit(boss);
             return;
-        } else if (sub_800C320(s, headPos.x, headPos.y, 0, p) == TRUE) {
+        } else if (Coll_Player_Boss_Attack(s, headPos.x, headPos.y, 0, p) == TRUE) {
             Boss8_HitCockpit(boss);
 
             {
@@ -1955,7 +1928,7 @@ static void sub_804C830(SuperEggRoboZ *boss)
                     p->qSpeedAirX = -ABS(speed);
                 }
             }
-        } else if (sub_800CA20(s, headPos.x, headPos.y, 0, p) == TRUE) {
+        } else if (Coll_Player_Enemy(s, headPos.x, headPos.y, 0, p) == TRUE) {
             s32 speed = p->qSpeedAirX;
             if (speed > 0) {
                 p->qSpeedAirX = -speed;
@@ -2117,7 +2090,7 @@ static void sub_804CCD0(SuperEggRoboZ *boss, s32 qP1)
     Vec2_32 pos = { boss->qPos.x + Q(190), boss->qPos.y + Q(40) };
 
     if ((I(gPlayer.qWorldY) < pos.x) && (gPlayer.qWorldY >= (pos.y - qP1)) && (gPlayer.qWorldY <= (qP1 + pos.y))) {
-        sub_800CBA4(&gPlayer);
+        Coll_DamagePlayer(&gPlayer);
     }
 }
 

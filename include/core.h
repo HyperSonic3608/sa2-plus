@@ -8,6 +8,7 @@
 #include "global.h"
 #include "sprite.h"
 #include "task.h"
+#include "flags.h"
 #include "tilemap.h"
 #include "input_recorder.h"
 #include "animation_commands.h"
@@ -292,7 +293,7 @@ extern FuncType_030053A0 gVBlankCallbacks[4];
 extern u8 gOamFreeIndex;
 extern u16 gUnknown_03001944;
 extern u8 gNumVBlankIntrs;
-extern u16 gUnknown_0300194C;
+extern s16 gUnknown_0300194C;
 
 extern Tilemap **gTilemapsRef;
 extern u8 gUnknown_03002280[4][4];
@@ -352,11 +353,11 @@ extern void *gUnknown_030022C0;
 extern s16 gMosaicReg;
 extern u8 gUnknown_030026F4;
 #endif
-extern u16 gUnknown_03002820;
+extern s16 gUnknown_03002820;
 extern u8 gUnknown_03002874;
-extern void *gUnknown_03002878;
+extern void *gHBlankCopyTarget;
 extern u8 gBackgroundsCopyQueueIndex;
-extern u8 gUnknown_03002A80;
+extern u8 gHBlankCopySize;
 extern u16 gUnknown_03002A8C;
 // When paused, the previously-active OAM elements get moved to the end
 // of the OAM. This is the index of the first currently-inactive element

@@ -46,6 +46,7 @@ void TaskDestructor_RingsMgr(struct Task *);
         TO_REGION(b + a + offset);                                                                                                         \
     })
 
+#ifndef COLLECT_RINGS_ROM
 const u8 *const gSpritePosData_rings[NUM_LEVEL_IDS] = {
     zone1_act1_rings,
     zone1_act2_rings,
@@ -82,6 +83,7 @@ const u8 *const gSpritePosData_rings[NUM_LEVEL_IDS] = {
     NULL,
     NULL,
 };
+#endif
 
 void CreateStageRingsManager(void)
 {
@@ -93,6 +95,7 @@ void CreateStageRingsManager(void)
     const u8 *compressedRingPosData;
     u32 dataSize;
 
+#ifndef COLLECT_RINGS_ROM
     if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
         t = TaskCreate(Task_RingsMgrMain, sizeof(RingsManager), 0x2000, 0, TaskDestructor_RingsMgr);
 
@@ -101,7 +104,14 @@ void CreateStageRingsManager(void)
         ewramBuffer = EwramMalloc(dataSize);
 
         RLUnCompWram(gSpritePosData_rings[gCurrentLevel], ewramBuffer);
-    } else {
+    } else
+#endif
+    {
+#if COLLECT_RINGS_ROM
+#ifndef NON_MATCHING
+        register u32 dataSize asm("r4");
+#endif
+#endif
         t = TaskCreate(Task_RingsMgrMain, sizeof(RingsManager), 0x2000, 0, NULL);
 
         compressedRingPosData = (u8 *)(*MP_COLLECT_RINGS_COMPRESSED_SIZE);
@@ -133,11 +143,12 @@ void CreateStageRingsManager(void)
     s->frameFlags = (SPRITE_FLAG_MASK_18 | SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG_MASK_MOSAIC);
 }
 
-// Required for match, but probably fake
-// leaving this in to ensure build consistency
-static inline s32 getCameraY(void) { return gCamera.y; }
-
+#ifndef COLLECT_RINGS_ROM
 void Task_RingsMgrMain(void)
+#else
+// 99.84% (stack issues): https://decomp.me/scratch/1u9Ce
+NONMATCH("asm/non_matching/game/sa1_sa2_shared/Task_RingsMgrMain_collect_rings.inc", void Task_RingsMgrMain(void))
+#endif
 {
     bool32 sp08;
 
@@ -162,6 +173,7 @@ void Task_RingsMgrMain(void)
 
         rings = *(u32 **)(TASK_DATA(gCurTask) + offsetof(RingsManager, rings));
 
+#ifndef COLLECT_RINGS_ROM
         if (IS_BOSS_STAGE(gCurrentLevel)) {
             if (gBossRingsShallRespawn && gBossRingsRespawnCount > 0) {
                 RLUnCompWram(gSpritePosData_rings[gCurrentLevel], rings);
@@ -169,8 +181,10 @@ void Task_RingsMgrMain(void)
                 gBossRingsRespawnCount--;
             }
         }
+#endif
 
         sp08 = FALSE;
+#ifndef COLLECT_RINGS_ROM
         if (IS_EXTRA_STAGE(gCurrentLevel)) {
             u32 res = SuperSonicGetFlags() & (SUPER_FLAG__200 | SUPER_FLAG__10 | SUPER_FLAG__8 | SUPER_FLAG__4);
             sp08 = TRUE;
@@ -185,6 +199,7 @@ void Task_RingsMgrMain(void)
             rect[2] = +10;
             rect[3] = +10;
         }
+#endif
 
         rings = *(u32 **)(TASK_DATA(gCurTask) + offsetof(RingsManager, rings));
         rm = TASK_DATA(gCurTask);
@@ -222,7 +237,24 @@ void Task_RingsMgrMain(void)
                             if (sp08 != FALSE
                                 || (gCurrentLevel != LEVEL_INDEX(ZONE_FINAL, ACT_TRUE_AREA_53) && !(p->moveState & MOVESTATE_DEAD))) {
                                 if (RECT_TOUCHING_RING(I(p->qWorldX), I(p->qWorldY), rx, ry, (Rect8 *)rect)) {
+#ifndef COLLECT_RINGS_ROM
                                     INCREMENT_RINGS(1);
+#else
+                                    {
+                                        s32 prevLives, newLives;
+                                        s32 oldRings = gRingCount;
+                                        gRingCount += 1;
+                                        if (!(IS_EXTRA_STAGE(gCurrentLevel))) {
+                                            newLives = Div(gRingCount, 100);
+                                            prevLives = Div(oldRings, 100);
+                                            if ((newLives != prevLives) && (gGameMode == GAME_MODE_SINGLE_PLAYER)) {
+                                                if (gNumLives < 255) {
+                                                    gNumLives++;
+                                                };
+                                            }
+                                        }
+                                    }
+#endif
 
                                     if (gGameMode == GAME_MODE_MULTI_PLAYER_COLLECT_RINGS && gRingCount > 255) {
                                         gRingCount = 255;
@@ -286,8 +318,13 @@ void Task_RingsMgrMain(void)
 
         // Draw rings
         regionY = TO_REGION(gCamera.y);
+#ifndef COLLECT_RINGS_ROM
         if (gPlayer.itemEffect & PLAYER_ITEM_EFFECT__SHIELD_MAGNETIC && gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
-            for (; TO_WORLD_POS(0, regionY) < getCameraY() + DISPLAY_HEIGHT && regionY < v_regionCount; regionY++) {
+            for (; TO_WORLD_POS(0, regionY) < gCamera.y + DISPLAY_HEIGHT && regionY < v_regionCount; regionY++) {
+#ifndef NON_MATCHING
+                while (0)
+                    ;
+#endif
                 for (regionX = TO_REGION(gCamera.x); TO_WORLD_POS(0, regionX) < gCamera.x + DISPLAY_WIDTH; regionX++) {
                     u32 offset = READ_START_INDEX(rings, h_regionCount, regionX, regionY);
 
@@ -352,8 +389,14 @@ void Task_RingsMgrMain(void)
                     }
                 }
             }
-        } else {
-            for (; TO_WORLD_POS(0, regionY) < getCameraY() + DISPLAY_HEIGHT && regionY < v_regionCount; regionY++) {
+        } else
+#endif
+        {
+            for (; TO_WORLD_POS(0, regionY) < gCamera.y + DISPLAY_HEIGHT && regionY < v_regionCount; regionY++) {
+#ifndef NON_MATCHING
+                while (0)
+                    ;
+#endif
                 for (regionX = TO_REGION(gCamera.x); TO_WORLD_POS(0, regionX) < gCamera.x + DISPLAY_WIDTH && regionX < h_regionCount;
                      regionX++) {
                     u32 offset = READ_START_INDEX(rings, h_regionCount, regionX, regionY);
@@ -405,9 +448,14 @@ void Task_RingsMgrMain(void)
         }
     }
 }
+#if COLLECT_RINGS_ROM
+END_NONMATCH
+#endif
 
+#ifndef COLLECT_RINGS_ROM
 void TaskDestructor_RingsMgr(struct Task *t)
 {
     void *rings = *(void **)(TASK_DATA(t) + offsetof(RingsManager, rings));
     EwramFree(rings);
 }
+#endif

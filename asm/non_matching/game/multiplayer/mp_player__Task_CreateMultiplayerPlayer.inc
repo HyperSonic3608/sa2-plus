@@ -380,7 +380,7 @@ _080164C4:
 	str r0, [r4, #0x20]
 	adds r0, r4, #0
 	movs r1, #0xe
-	bl sub_8023B5C
+	bl Player_HandleSpriteYOffsetChange
 	movs r0, #6
 	strb r0, [r4, #0x16]
 	movs r0, #0xe
@@ -586,7 +586,7 @@ _0801666C:
 	strb r0, [r1]
 	ldr r0, _080166EC @ =gGameMode
 	ldrb r0, [r0]
-	bl MultiPakCommunicationError
+	bl LinkCommunicationError
 	b _08016D08
 	.align 2, 0
 _080166D4: .4byte 0x0000FFFF

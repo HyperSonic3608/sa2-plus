@@ -33,6 +33,8 @@
 
 #include "game/multiplayer/multiplayer_event_mgr.h"
 
+#define BOSS_RINGS_DEFAULT_RESPAWN_COUNT 10
+
 struct Task *gGameStageTask = NULL;
 
 void Task_GameStage(void);
@@ -40,7 +42,7 @@ void Task_GameStage(void);
 void TaskDestructor_GameStage(struct Task *);
 void sub_801F044(void);
 
-void sub_80213C0(u32, u32, Player *);
+void CreatePlayer(u32, u32, Player *);
 void CreateBossRunManager(u8);
 void StageInit_CollectRings(void);
 
@@ -76,7 +78,7 @@ void StageInit_31(void);
 void StageInit_32(void);
 void StageInit_33(void);
 void StageInit_Dummy(void);
-
+#ifndef COLLECT_RINGS_ROM
 // NOTE(Jace): Many of these call copies of the exact same procedure,
 //             so for non-matching builds we could just exclude
 //             codegen for those copies and have pointers to a single one?
@@ -114,13 +116,14 @@ const VoidFn sStageInitProcs[NUM_LEVEL_IDS] = { StageInit_Zone1Act1,
                                                 StageInit_31,
                                                 StageInit_32,
                                                 StageInit_33 };
-
+#else
+extern const VoidFn sStageInitProcs[NUM_LEVEL_IDS];
+#endif
 extern const s8 CollHeightMap_zone_1_act_1_fg[];
 extern const u8 CollTileRot_zone_1_act_1_fg[];
 extern const u8 CollFlags_zone_1_act_1_fg[];
 
-#define BOSS_RINGS_DEFAULT_RESPAWN_COUNT 10
-
+#ifndef COLLECT_RINGS_ROM
 void ApplyGameStageSettings(void)
 {
     gLevelScore = 0;
@@ -177,6 +180,7 @@ void GameStageStart(void)
 
     CreateGameStage();
 }
+#endif
 
 void CreateGameStage(void)
 {
@@ -197,9 +201,9 @@ void CreateGameStage(void)
     gUnknown_030053E0 = 0;
 
     if (!IS_EXTRA_STAGE(gCurrentLevel)) {
-        sub_80213C0(gSelectedCharacter, gCurrentLevel, &gPlayer);
+        CreatePlayer(gSelectedCharacter, gCurrentLevel, &gPlayer);
     }
-
+#ifndef COLLECT_RINGS_ROM
     if (IS_BOSS_STAGE(gCurrentLevel)) {
         gBossCameraClampYLower = gBossCameraYClamps[LEVEL_TO_ZONE(gCurrentLevel)][0];
         gBossCameraClampYUpper = gBossCameraYClamps[LEVEL_TO_ZONE(gCurrentLevel)][1];
@@ -214,13 +218,17 @@ void CreateGameStage(void)
             gBossCameraClampYUpper = gBossCameraYClamps[ZONE_FINAL + 1][1];
         }
     }
+#endif
 
+#ifndef COLLECT_RINGS_ROM
     if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
         CreateStageMusicManager();
         SetupStageIntro();
         InitCamera(gCurrentLevel);
         sStageInitProcs[gCurrentLevel]();
-    } else {
+    } else
+#endif
+    {
         InitCamera(0);
         StageInit_CollectRings();
         CreateCollectRingsTimeDisplay();
@@ -228,9 +236,11 @@ void CreateGameStage(void)
         gStageFlags &= ~STAGE_FLAG__ACT_START;
     }
 
+#ifndef COLLECT_RINGS_ROM
     if (gCurrentLevel != LEVEL_INDEX(ZONE_1, ACT_1)) {
         CreateStageWaterTask(-1, 0, 0);
     }
+#endif
 
     gStageFlags &= ~STAGE_FLAG__2;
     gStageFlags &= ~STAGE_FLAG__TIMER_REVERSED;
@@ -278,7 +288,9 @@ void CreateGameStage(void)
         if (gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
             gPlayer.itemEffect |= PLAYER_ITEM_EFFECT__TELEPORT;
         }
-    } else {
+    }
+#ifndef COLLECT_RINGS_ROM
+    else {
         for (i = 0; i < 4; i++) {
             gUnknown_030054B4[i] = -1;
         }
@@ -293,20 +305,23 @@ void CreateGameStage(void)
     if (IS_MULTI_PLAYER && gGameMode != GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
         CreateRaceProgressIndicator();
     }
+#endif
 }
 
 void Task_GameStage(void)
 {
     u16 sioId = SIO_MULTI_CNT->id;
     u32 timeStep;
-
+#ifndef COLLECT_RINGS_ROM
     if (IS_SINGLE_PLAYER) {
         if (!(gStageFlags & STAGE_FLAG__DISABLE_PAUSE_MENU) && (gPressedKeys & START_BUTTON) && !(gStageFlags & STAGE_FLAG__DEMO_RUNNING)) {
             CreatePauseMenu();
         }
         gStageTime++;
         timeStep = 1;
-    } else {
+    } else
+#endif
+    {
         u32 framesSinceStageStart = (gFrameCount - gMPStageStartFrameCount);
         timeStep = framesSinceStageStart - gStageTime;
         gStageTime = framesSinceStageStart;
@@ -395,6 +410,7 @@ void Task_GameStage(void)
             return;
         }
 
+#ifndef COLLECT_RINGS_ROM
         if (IS_SINGLE_PLAYER) {
             gStageFlags |= STAGE_FLAG__ACT_START;
 
@@ -426,15 +442,19 @@ void Task_GameStage(void)
             }
             gPlayer.moveState |= MOVESTATE_DEAD;
             m4aSongNumStart(SE_TIME_UP);
-        } else {
+        }
+#endif
+        else {
             gStageFlags |= STAGE_FLAG__ACT_START;
 #if (GAME == GAME_SA1)
-            sa2__sub_8019F08();
+            sa2__CreateMultiplayerFinishHandler();
 #elif (GAME == GAME_SA2)
-            sub_8019F08();
+            CreateMultiplayerFinishHandler();
 #endif
         }
-    } else {
+    }
+#ifndef COLLECT_RINGS_ROM
+    else {
         gCourseTime += timeStep;
         if (gCourseTime <= MAX_COURSE_TIME) {
             return;
@@ -465,14 +485,57 @@ void Task_GameStage(void)
         } else {
             gStageFlags |= STAGE_FLAG__ACT_START;
 #if (GAME == GAME_SA1)
-            sa2__sub_8019F08();
+            sa2__CreateMultiplayerFinishHandler();
 #elif (GAME == GAME_SA2)
-            sub_8019F08();
+            CreateMultiplayerFinishHandler();
 #endif
         }
     }
+#endif
 }
 
+#if COLLECT_RINGS_ROM
+void ApplyGameStageSettings(void)
+{
+    gLevelScore = 0;
+    gUnknown_030054B0 = 0;
+    gNumLives = 3;
+
+    if (IS_MULTI_PLAYER) {
+        gNumLives = 1;
+    }
+
+    SetPlayerControls(A_BUTTON, B_BUTTON, R_BUTTON);
+}
+
+void GameStageStart(void)
+{
+    gTrappedAnimalVariant = 0;
+    gBossIndex = 0;
+    gRingCount = 0;
+
+    // Unused leftover var from SA1, used for CPU "Partner" Tails
+    gNumSingleplayerCharacters = 1;
+
+    if (gCurrentLevel != LEVEL_INDEX(ZONE_FINAL, ACT_TRUE_AREA_53)) {
+        CallSetStageSpawnPos(gSelectedCharacter, gCurrentLevel, 0, &gPlayer);
+        // gCheese = NULL;
+    }
+
+    gStageTime = 0;
+    gStageFlags &= ~STAGE_FLAG__GRAVITY_INVERTED;
+
+    gMPStageStartFrameCount = gFrameCount;
+
+    gCheckpointTime = ZONE_TIME_TO_INT(0, 0);
+
+    gCourseTime = ZONE_TIME_TO_INT(3, 0);
+
+    CreateGameStage();
+}
+#endif
+
+#ifndef COLLECT_RINGS_ROM
 void HandleLifeLost(void)
 {
     gStageFlags |= STAGE_FLAG__DISABLE_PAUSE_MENU;
@@ -653,6 +716,7 @@ void StageInit_Zone7ActBoss(void)
 
     StageInit_SetMusic_inline(gCurrentLevel);
 }
+#endif
 
 void DestroyStageTasks(void)
 {
@@ -669,6 +733,7 @@ void DestroyStageTasks(void)
     DestroyCameraMovementTask();
 }
 
+#ifndef COLLECT_RINGS_ROM
 void HandleDeath(void)
 {
     gStageFlags |= STAGE_FLAG__DISABLE_PAUSE_MENU;
@@ -717,7 +782,7 @@ void GoToNextLevel(void)
     REG_DISPSTAT = 0;
     REG_DISPSTAT;
 
-    gFlags &= ~FLAGS_4;
+    gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
 
     SlowDmaStop(0);
     SlowDmaStop(1);
@@ -756,6 +821,7 @@ void GoToNextLevel(void)
     }
 #endif
 }
+#endif
 
 void TaskDestructor_GameStage(struct Task *t)
 {
@@ -766,9 +832,12 @@ void TaskDestructor_GameStage(struct Task *t)
     }
 #endif
     gGameStageTask = NULL;
+#ifndef COLLECT_RINGS_ROM
     m4aMPlayAllStop();
+#endif
 }
 
+#ifndef COLLECT_RINGS_ROM
 void StageInit_Zone1Act2(void)
 {
     CreatePaletteLoaderTask(0x2000, 897, 0, NULL);
@@ -819,7 +888,22 @@ void StageInit_32(void) { StageInit_SetMusic_inline(gCurrentLevel); }
 void StageInit_33(void) { StageInit_SetMusic_inline(gCurrentLevel); }
 
 void StageInit_Dummy(void) { StageInit_SetMusic_inline(gCurrentLevel); }
+#endif
 
-void StageInit_CollectRings(void) { StageInit_SetMusic_inline(gCurrentLevel); }
+void StageInit_CollectRings(void)
+{
+#ifndef COLLECT_RINGS_ROM
+    StageInit_SetMusic_inline(gCurrentLevel);
+#else
+    m4aSongNumStart(MUS_VS_2);
+#endif
+}
 
+#if COLLECT_RINGS_ROM
+// ??
+void StageInit_CollectRingsRom(void) { m4aSongNumStart(MUS_VS_2); }
+#endif
+
+#ifndef COLLECT_RINGS_ROM
 void StageInit_SetMusic(u16 level) { StageInit_SetMusic_inline(level); }
+#endif

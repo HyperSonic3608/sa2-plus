@@ -89,7 +89,7 @@ static void Task_StageGoalMain(void)
     }
 
     if (PLAYER_IS_ALIVE && !(gPlayer.moveState & MOVESTATE_IA_OVERRIDE)) {
-        if (sub_800C204(s, x, y, 0, &gPlayer, 0) == 1) {
+        if (Coll_Player_Entity_HitboxN(s, x, y, 0, &gPlayer, 0) == 1) {
             s->graphics.anim = SA2_ANIM_GOAL_LEVER;
             s->variant = 0;
             s->prevVariant = -1;
@@ -198,7 +198,7 @@ static void StageGoalToggle_HandleMultiplayerFinish(void)
             }
         }
 
-        sub_8019CCC(SIO_MULTI_CNT->id, count);
+        CreateMultiplayerFinishResult(SIO_MULTI_CNT->id, count);
         player->unk5C |= 1;
 
         if (count == 0) {
@@ -241,9 +241,9 @@ static UNUSED void StageGoalToggle_ForceMultiplayerFinish(void)
         if (gUnknown_030054B4[j] == -1) {
             if ((gMultiplayerConnections & (0x10 << (j))) >> ((j + 4))
                 == (gMultiplayerConnections & (0x10 << (SIO_MULTI_CNT->id))) >> (SIO_MULTI_CNT->id + 4)) {
-                sub_8019CCC(j, thing);
+                CreateMultiplayerFinishResult(j, thing);
             } else {
-                sub_8019CCC(j, thing ^ 1);
+                CreateMultiplayerFinishResult(j, thing ^ 1);
             }
         }
     }
@@ -287,7 +287,7 @@ static void StageGoalToggle_PlayerReachedGoal(void)
                 }
             }
 
-            sub_8019F08();
+            CreateMultiplayerFinishHandler();
             TaskDestroy(gCurTask);
         }
     }

@@ -6,7 +6,7 @@
 #include "game/stage/player.h"
 #include "game/stage/camera.h"
 #include "game/stage/boss_results_transition.h"
-#include "game/stage/collision.h"
+#include "game/stage/terrain_collision.h"
 
 #include "game/bosses/boss_7.h"
 #include "game/bosses/common.h"
@@ -486,7 +486,7 @@ static void Render(EggFrog *boss)
                     DisplaySprite(s);
 
                     if (boss->unk14 && boss->unk0 == 0) {
-                        sub_800CA20(s, s->x + gCamera.x, s->y + gCamera.y, 0, &gPlayer);
+                        Coll_Player_Enemy(s, s->x + gCamera.x, s->y + gCamera.y, 0, &gPlayer);
                     }
                 }
             }
@@ -521,15 +521,15 @@ static void sub_8048408(EggFrog *boss)
     s->y = pos.y - gCamera.y;
 
     if (boss->unk16 == 0) {
-        if (sub_800C320(s, pos.x, pos.y, 0, &gPlayer) == TRUE) {
+        if (Coll_Player_Boss_Attack(s, pos.x, pos.y, 0, &gPlayer) == TRUE) {
             sub_8048D78(boss);
-        } else if (sub_800CA20(s, pos.x, pos.y, 0, &gPlayer) == TRUE) {
+        } else if (Coll_Player_Enemy(s, pos.x, pos.y, 0, &gPlayer) == TRUE) {
             sub_804928C(boss);
         }
 
         Player_UpdateHomingPosition(QS(pos.x), QS(pos.y));
 
-        if (boss->unk16 == 0 && IsColliding_Cheese(s, pos.x, pos.y, 0, &gPlayer) == TRUE) {
+        if (boss->unk16 == 0 && Coll_Cheese_Enemy_Attack(s, pos.x, pos.y, 0, &gPlayer) == TRUE) {
             sub_8048D78(boss);
             gCheeseTarget.task->unk15 = 0;
         }
@@ -1254,7 +1254,7 @@ static void sub_80494EC(void)
     s->x = I(bomb->x);
     s->y = I(bomb->y);
     if (bomb->boss->unk14) {
-        s32 result = sub_800CA20(s, I(bomb->x) + gCamera.x, I(bomb->y) + gCamera.y, 0, &gPlayer);
+        s32 result = Coll_Player_Enemy(s, I(bomb->x) + gCamera.x, I(bomb->y) + gCamera.y, 0, &gPlayer);
         if (result == 1 && bomb->boss->unk16 == 0) {
             Sprite *unk68 = &bomb->boss->unk68;
             bomb->boss->unk15 = 0x1E;
@@ -1350,7 +1350,7 @@ static void Task_80497E0(void)
     s->x = I(bombFlame->x);
     s->y = I(bombFlame->y);
     if (bombFlame->boss->unk14) {
-        s32 result = sub_800CA20(s, I(bombFlame->x) + gCamera.x, I(bombFlame->y) + gCamera.y, 0, &gPlayer);
+        s32 result = Coll_Player_Enemy(s, I(bombFlame->x) + gCamera.x, I(bombFlame->y) + gCamera.y, 0, &gPlayer);
         if (result == 1 && bombFlame->boss->unk16 == 0) {
             Sprite *unk68 = &bombFlame->boss->unk68;
             bombFlame->boss->unk15 = 30;

@@ -80,7 +80,7 @@ static void Task_Idle(void)
     s->x = x - gCamera.x;
     s->y = y - gCamera.y;
 
-    if (!(gPlayer.moveState & (MOVESTATE_IA_OVERRIDE | MOVESTATE_DEAD)) && sub_800C204(s, x, y, 0, &gPlayer, 0) == 1) {
+    if (!(gPlayer.moveState & (MOVESTATE_IA_OVERRIDE | MOVESTATE_DEAD)) && Coll_Player_Entity_HitboxN(s, x, y, 0, &gPlayer, 0) == 1) {
 #ifndef NON_MATCHING
         register s32 temp1 asm("r0"), temp2;
 #else
@@ -189,9 +189,7 @@ NONMATCH("asm/non_matching/game/interactables_1/Task_Rotating.inc", void Task_Ro
         gPlayer.transition = PLTRANS_UNCURL;
         me->x = rotatingHandle->base.spriteX;
         Player_TransitionCancelFlyingAndBoost(&gPlayer);
-        sub_8023B5C(&gPlayer, 9);
-        gPlayer.spriteOffsetX = 6;
-        gPlayer.spriteOffsetY = 9;
+        PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 9);
         gPlayer.moveState &= ~MOVESTATE_IA_OVERRIDE;
         gCurTask->main = Task_AfterJump;
 
