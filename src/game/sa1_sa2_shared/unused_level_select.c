@@ -37,6 +37,13 @@ static void Task_LoadStage(void);
 
 void CreateUnusedLevelSelect(void)
 {
+#ifdef BUG_FIX
+    // You can come into a situation where a backgorund gets put onto the queue,
+    // but the memory gets free'd.
+    // So we need to make sure the Background Copy Queue is clear.
+    PAUSE_BACKGROUNDS_QUEUE();
+    PAUSE_GRAPHICS_QUEUE();
+#endif
     struct Task *t = TaskCreate(Task_UnusedLevelSelectInit, sizeof(LevelSelect), 0x2000, 0, NULL);
     gMultiplayerMissingHeartbeats[3] = 0;
     gMultiplayerMissingHeartbeats[2] = 0;
@@ -86,11 +93,11 @@ static void Task_Poll(void)
 #if (GAME == GAME_SA1)
         m4aSongNumStop(MUS_CHARACTER_SELECTION);
 
-        sa2__gUnknown_03004D80[0] = 0;
-        sa2__gUnknown_03002280[0][0] = 0;
-        sa2__gUnknown_03002280[0][1] = 0;
-        sa2__gUnknown_03002280[0][2] = 0xFF;
-        sa2__gUnknown_03002280[0][3] = 0x20;
+        gBgSprites_Unknown1[0] = 0;
+        gBgSprites_Unknown2[0][0] = 0;
+        gBgSprites_Unknown2[0][1] = 0;
+        gBgSprites_Unknown2[0][2] = 0xFF;
+        gBgSprites_Unknown2[0][3] = 0x20;
 
         if (IS_MULTI_PLAYER) {
             gCurTask->main = Task_CreateMultiplayer;
@@ -98,11 +105,7 @@ static void Task_Poll(void)
             gCurTask->main = Task_CreateSelectedTask;
         }
 #elif (GAME == GAME_SA2)
-        gUnknown_03004D80[0] = 0;
-        gUnknown_03002280[0][0] = 0;
-        gUnknown_03002280[0][1] = 0;
-        gUnknown_03002280[0][2] = 0xFF;
-        gUnknown_03002280[0][3] = 0x20;
+        INIT_BG_SPRITES_LAYER_32(0);
 
         gCurTask->main = Task_LoadStage;
 #endif
@@ -113,17 +116,13 @@ static void Task_Poll(void)
 #if (GAME == GAME_SA1)
         CreateCharacterSelectionScreen(0);
 
-        sa2__gUnknown_03004D80[0] = 0;
-        sa2__gUnknown_03002280[0][0] = 0;
-        sa2__gUnknown_03002280[0][1] = 0;
-        sa2__gUnknown_03002280[0][2] = 0xFF;
-        sa2__gUnknown_03002280[0][3] = 0x20;
+        gBgSprites_Unknown1[0] = 0;
+        gBgSprites_Unknown2[0][0] = 0;
+        gBgSprites_Unknown2[0][1] = 0;
+        gBgSprites_Unknown2[0][2] = 0xFF;
+        gBgSprites_Unknown2[0][3] = 0x20;
 #elif (GAME == GAME_SA2)
-        gUnknown_03004D80[0] = 0;
-        gUnknown_03002280[0][0] = 0;
-        gUnknown_03002280[0][1] = 0;
-        gUnknown_03002280[0][2] = 0xFF;
-        gUnknown_03002280[0][3] = 0x20;
+        INIT_BG_SPRITES_LAYER_32(0);
 #endif
     } else {
         if (gRepeatedKeys & DPAD_LEFT) {
@@ -148,7 +147,7 @@ static void Task_Poll(void)
 static void Task_UnusedLevelSelectInit(void)
 {
     LevelSelect *levelSelect = TASK_DATA(gCurTask);
-    gBgPalette[1] = RGB_WHITE;
+    SET_PALETTE_COLOR_BG(0, 1, RGB_WHITE);
     gFlags |= FLAGS_UPDATE_BACKGROUND_PALETTES;
 
     levelSelect->vram += RenderText(levelSelect->vram, Tileset_DebugAscii, 6, 14, 0, "STAGE", 0);

@@ -80,7 +80,7 @@ void CreateEntity_FlyingHandle(MapEntity *me, u16 spriteRegionX, u16 spriteRegio
     flyingHandle->base.regionX = spriteRegionX;
     flyingHandle->base.regionY = spriteRegionY;
     flyingHandle->base.me = me;
-    flyingHandle->base.spriteX = me->x;
+    flyingHandle->base.meX = me->x;
     flyingHandle->base.id = spriteY;
 
     for (i = 0; i < 3; i++) {
@@ -156,7 +156,7 @@ static void HandlePlayerJumpOff(Sprite_FlyingHandle *flyingHandle)
     gPlayer.moveState &= ~MOVESTATE_IA_OVERRIDE;
     Player_TransitionCancelFlyingAndBoost(&gPlayer);
     PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
-    gPlayer.moveState &= ~MOVESTATE_4;
+    gPlayer.moveState &= ~MOVESTATE_SPIN_ATTACK;
     gPlayer.transition = PLTRANS_INIT_JUMP;
     gPlayer.qSpeedGround = 0;
     gPlayer.qSpeedAirX = 0;
@@ -318,7 +318,7 @@ static bool32 ShouldDespawn(Sprite_FlyingHandle *flyingHandle)
 
 static void Despawn(Sprite_FlyingHandle *flyingHandle)
 {
-    SET_MAP_ENTITY_NOT_INITIALIZED(flyingHandle->base.me, flyingHandle->base.spriteX);
+    SET_MAP_ENTITY_NOT_INITIALIZED(flyingHandle->base.me, flyingHandle->base.meX);
     TaskDestroy(gCurTask);
 }
 

@@ -130,13 +130,13 @@ extern u32 gCourseTime;
 extern u8 gSpecialRingCount;
 
 // TODO: Types not checked yet!
-extern s32 gUnknown_030054E0;
-extern s32 gUnknown_030054FC;
+extern s32 gWorldSpeedY;
+extern s32 gWorldSpeedX;
 
 extern u16 gBossCameraClampYLower;
 extern u16 gBossCameraClampYUpper;
 extern u8 gRandomItemBox;
-extern u8 gUnknown_030053E0;
+extern u8 gSpikesUnknownTimer;
 
 extern s8 gUnknown_0300543C;
 extern struct Task *gEntitiesManagerTask;
@@ -148,7 +148,7 @@ extern u8 gRoomEventQueueSendPos;
 // "Extra State" (see above #defines for states)
 // TODO: Find better name. Put somewhere else?
 extern u16 gStageFlags;
-extern u16 gUnknown_0300544C;
+extern u16 gPrevStageFlags;
 
 extern u8 gDifficultyLevel;
 
@@ -168,12 +168,12 @@ extern u8 gRoomEventQueueWritePos;
 
 extern u8 gBossRingsRespawnCount;
 extern bool8 gBossRingsShallRespawn;
-extern bool8 gUnknown_030055BC;
+extern bool8 gBoostEffectTasksCreated;
 
 extern struct Task *gMultiplayerPlayerTasks[4];
 extern s8 gMultiplayerCharacters[4];
-extern s8 gUnknown_030054B4[4];
-extern u8 gUnknown_030054B8;
+extern s8 gMultiplayerRanks[4];
+extern u8 gOamMatrixIndex;
 
 extern u8 gMultiplayerMissingHeartbeats[4];
 extern u8 gActiveCollectRingEffectCount;
@@ -187,7 +187,7 @@ extern u32 gMultiplayerPseudoRandom;
 
 extern s32 gLevelScore;
 extern u8 gNumLives;
-extern u8 gUnknown_030054B0;
+extern bool8 gFinalBossActive;
 
 extern HomingTarget gHomingTarget;
 
@@ -275,18 +275,14 @@ extern u8 gFrameInputsBufIndex;
 #define INCREMENT_RINGS(_inc)                                                                                                              \
     {                                                                                                                                      \
         s32 prevLives, newLives;                                                                                                           \
-        s32 oldRings = gRingCount;                                                                                                         \
-        gRingCount += _inc;                                                                                                                \
-                                                                                                                                           \
+        u16 oldRings = gRingCount;                                                                                                         \
+        gRingCount = oldRings + (_inc);                                                                                                    \
         if (!(IS_EXTRA_STAGE(gCurrentLevel))) {                                                                                            \
             newLives = Div(gRingCount, 100);                                                                                               \
             prevLives = Div(oldRings, 100);                                                                                                \
-                                                                                                                                           \
             if ((newLives != prevLives) && (gGameMode == GAME_MODE_SINGLE_PLAYER)) {                                                       \
                 u16 lives = gNumLives + 1;                                                                                                 \
-                                                                                                                                           \
                 gNumLives = LIVES_BOUND_CHECK_A(lives);                                                                                    \
-                                                                                                                                           \
                 gMusicManagerState.unk3 = 0x10 | 0x0;                                                                                      \
             }                                                                                                                              \
         }                                                                                                                                  \

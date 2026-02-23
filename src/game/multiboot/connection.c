@@ -126,7 +126,7 @@ static const u16 gUnknown_080E01B6[7][3] = {
     [LANG_ITALIAN] = { SA2_ANIM_PRESS_START_MSG_ES, 0, 30 },
 };
 
-static void *const gUnknown_080E01E0[7][2] = {
+void *const gUnknown_080E01E0[7][2] = {
     { NULL, NULL },
     { (void *)&gMultiBootProgram_SubgameLoader, &gMultiBootProgram_SubgameLoaderEnd },
     { (void *)&gMultiBootProgram_SubgameLoader, &gMultiBootProgram_SubgameLoaderEnd },
@@ -170,11 +170,7 @@ void LinkCommunicationError(void)
     gBldRegs.bldCnt = 0;
     gBldRegs.bldY = 0;
     DmaFill32(3, 0, VRAM + ((gBgCntRegs[0] & 0xC) * 0x1000), 0x40);
-    gUnknown_03004D80[0] = 0;
-    gUnknown_03002280[0][0] = 0;
-    gUnknown_03002280[0][1] = 0;
-    gUnknown_03002280[0][2] = 0xFF;
-    gUnknown_03002280[0][3] = 32;
+    INIT_BG_SPRITES_LAYER_32(0);
     gBgCntRegs[0] = 0x1E01;
     gBgScrollRegs[0][0] = 0;
     gBgScrollRegs[0][1] = 0;
@@ -199,7 +195,11 @@ void LinkCommunicationError(void)
     gBgScrollRegs[1][1] = 0;
     switch (gMultiplayerLanguage) {
         case 0:
+#ifdef JAPAN
+            gBgScrollRegs[1][1] = -56;
+#else
             gBgScrollRegs[1][1] = -8;
+#endif
             break;
         case 1:
             gBgScrollRegs[1][1] = -56;
@@ -246,6 +246,9 @@ void sub_8081200(void)
     gDummyTask = NULL;
     gGameStageTask = NULL;
     gPlayer.spriteTask = NULL;
+#if (GAME == GAME_SA1)
+    gPartner.spriteTask = NULL;
+#endif
     gCamera.movementTask = NULL;
     gUnknown_0300543C = 0;
 #ifndef COLLECT_RINGS_ROM
@@ -288,7 +291,7 @@ void StartSinglePakConnect(void)
 
     t = TaskCreate(sub_8081604, sizeof(struct SinglePakConnectScreen), 0x2000, 0, NULL);
     connectScreen = TASK_DATA(t);
-    connectScreen->unkFA = gLoadedSaveGame->language;
+    connectScreen->unkFA = LOADED_SAVE->language;
 
     if ((u8)LanguageIndex(connectScreen->unkFA) > LanguageIndex(LANG_ITALIAN)) {
         connectScreen->unkFA = 1;
@@ -392,7 +395,7 @@ void StartSinglePakConnect(void)
     } else {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         LinkCommunicationError();
     }
@@ -411,7 +414,7 @@ void sub_8081604(void)
     if (SomeSioCheck()) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         LinkCommunicationError();
     }
@@ -453,7 +456,7 @@ void sub_8081604(void)
         || multiBootFlags == MULTIBOOT_ERROR_BOOT_FAILURE || multiBootFlags == MULTIBOOT_ERROR_HANDSHAKE_FAILURE) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         gFlags &= ~0x4000;
         gFlags &= ~FLAGS_8000;
@@ -520,7 +523,7 @@ void sub_80818B8(void)
         if (!sub_8081E38(connectScreen, i)) {
             TasksDestroyAll();
             PAUSE_BACKGROUNDS_QUEUE();
-            gUnknown_03005390 = 0;
+            gBgSpritesCount = 0;
             PAUSE_GRAPHICS_QUEUE();
             gFlags &= ~0x4000;
             gFlags &= ~FLAGS_8000;
@@ -535,7 +538,7 @@ void sub_80818B8(void)
                 for (j = 0; j < 4; j++) {
                     gMultiplayerCharacters[j] = 0;
                     gMPRingCollectWins[j] = 0;
-                    gUnknown_030054B4[j] = j;
+                    gMultiplayerRanks[j] = j;
                     gMultiplayerMissingHeartbeats[j] = 0;
                 }
                 gCurTask->main = sub_8081D58;
@@ -599,22 +602,22 @@ void sub_8081AD4(struct SinglePakConnectScreen *connectScreen)
     background->flags = BACKGROUND_FLAGS_BG_ID(0);
     DrawBackground(background);
 
-    CpuFill16(0, &gBgPalette[17], 30);
+    CpuFill16(0, &GET_PALETTE_COLOR_BG(1, 1), RGB16_REV(30, 0, 0));
 
-    gDispCnt |= 0x2200;
-    temp = 0x1f01;
+    gDispCnt |= (DISPCNT_BG1_ON | DISPCNT_WIN0_ON);
+    temp = BGCNT_SCREENBASE(31) | BGCNT_PRIORITY(1);
     gBgScrollRegs[1][0] = 0;
     gBgScrollRegs[1][1] = 0;
-    gWinRegs[0] = 0x2828;
-    gWinRegs[2] = 0x8890;
-    gWinRegs[4] = 2;
-    gWinRegs[5] = 1;
+    gWinRegs[WINREG_WIN0H] = WIN_RANGE(40, 40);
+    gWinRegs[WINREG_WIN0V] = WIN_RANGE(136, 144);
+    gWinRegs[WINREG_WININ] = 2;
+    gWinRegs[WINREG_WINOUT] = 1;
     gBgCntRegs[1] = temp;
 
     CpuFill16(0xF3FF, (void *)BG_SCREEN_ADDR(31), 2049);
     CpuFill16(0xFFFF, (void *)VRAM + 1023 * TILE_SIZE_4BPP, TILE_SIZE_4BPP);
 
-    gBgPalette[255] = RGB_RED;
+    SET_PALETTE_COLOR_BG(15, 15, RGB_RED);
     gFlags |= FLAGS_UPDATE_BACKGROUND_PALETTES;
 }
 
@@ -624,7 +627,7 @@ void ShowSinglePakResults(void)
     for (i = 0; i < MULTI_SIO_PLAYERS_MAX; i++) {
         gMultiplayerCharacters[i] = 0;
         gMPRingCollectWins[i] = 0;
-        gUnknown_030054B4[i] = i;
+        gMultiplayerRanks[i] = i;
         gMultiplayerMissingHeartbeats[i] = 0;
     }
 

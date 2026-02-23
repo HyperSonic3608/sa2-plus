@@ -1,6 +1,7 @@
 #include "core.h"
 #include "malloc_vram.h"
 #include "sprite.h"
+#include "trig.h"
 #include "task.h"
 #include "flags.h"
 #include "lib/m4a/m4a.h"
@@ -10,7 +11,7 @@
 #include "game/time_attack/mode_select.h"
 #include "game/stage/screen_fade.h"
 #include "game/title_screen.h"
-#include "game/stage/game_7.h"
+#include "game/stage/screen_mask.h"
 
 #include "constants/animations.h"
 #include "constants/songs.h"
@@ -240,7 +241,7 @@ void Task_IntroSweepAnim(void)
 
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
     InitHBlankBgOffsets(DISPLAY_WIDTH);
-    sub_802E044(Q(100), modeScreen->animFrame * 20 + 700);
+    ScreenMask_Right_OriginBottom(Q(100), modeScreen->animFrame * DEG_TO_SIN(7.03125) + DEG_TO_SIN(246.09375));
 
     if (gPressedKeys & A_BUTTON) {
         modeScreen->animFrame = 0;
@@ -274,7 +275,7 @@ static void Task_IntroUIAnim(void)
 
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
     InitHBlankBgOffsets(DISPLAY_WIDTH);
-    sub_802E044(Q(100), 700);
+    ScreenMask_Right_OriginBottom(Q(100), DEG_TO_SIN(246.09375));
 
     s = &modeScreen->title;
     if (modeScreen->animFrame < 10) {
@@ -347,7 +348,7 @@ static void Task_ScreenMain(void)
 
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
     InitHBlankBgOffsets(DISPLAY_WIDTH);
-    sub_802E044(Q(100), 700);
+    ScreenMask_Right_OriginBottom(Q(100), DEG_TO_SIN(246.09375));
 
     if (gPressedKeys & (DPAD_UP | DPAD_DOWN)) {
         m4aSongNumStart(SE_MENU_CURSOR_MOVE);
@@ -413,7 +414,7 @@ static void Task_FadeOutModeSelected(void)
 
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
     InitHBlankBgOffsets(DISPLAY_WIDTH);
-    sub_802E044(Q(100), 700);
+    ScreenMask_Right_OriginBottom(Q(100), DEG_TO_SIN(246.09375));
     RenderUI(modeScreen);
 }
 
@@ -436,7 +437,7 @@ static void Task_FadeOutToTitleScreen(void)
 
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
     InitHBlankBgOffsets(DISPLAY_WIDTH);
-    sub_802E044(Q(100), 700);
+    ScreenMask_Right_OriginBottom(Q(100), DEG_TO_SIN(246.09375));
     RenderUI(modeScreen);
 }
 
@@ -461,7 +462,7 @@ static void Task_HandleModeSelectedExit(void)
 
     TasksDestroyAll();
     PAUSE_BACKGROUNDS_QUEUE();
-    gUnknown_03005390 = 0;
+    gBgSpritesCount = 0;
     PAUSE_GRAPHICS_QUEUE();
     CreateCharacterSelectionScreen(0, gLoadedSaveGame->unlockedCharacters & 0x10);
 }

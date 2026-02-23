@@ -150,9 +150,9 @@ void sub_806E7C0(struct SpecialStageWorld *world)
     }
 
     world->bgTransforms = EwramMalloc(DISPLAY_HEIGHT * sizeof(BgAffineReg));
-    gBgOffsetsHBlank = world->bgTransforms;
-    gUnknown_03004D54 = world->bgTransforms;
-    gUnknown_030022C0 = world->bgTransforms;
+    gBgOffsetsHBlankPrimary = world->bgTransforms;
+    gBgOffsetsPrimary = world->bgTransforms;
+    gBgOffsetsSecondary = world->bgTransforms;
     unk4 = world->bgTransforms;
 
     {
@@ -185,7 +185,7 @@ void sub_806E94C(struct SpecialStageWorld *world)
 
     for (i = 0; i < num; i++) {
         Sprite *s = &world->unk90[i];
-        s->graphics.dest = gUnknown_03005B5C;
+        s->graphics.dest = gSpecialStageVramPointer;
         s->graphics.size = 0;
         s->graphics.anim = assets[i].anim;
         s->frameFlags = 0x80000;
@@ -199,7 +199,7 @@ void sub_806E94C(struct SpecialStageWorld *world)
         s->animSpeed = 16;
         s->palId = 0;
         s->hitboxes[0].index = -1;
-        sub_80036E0(s);
+        UpdateSpriteAnimation_BG(s);
     }
 }
 
@@ -215,7 +215,7 @@ void sub_806EA04(void)
 
     gHBlankCopySize = sizeof(BgAffineReg);
     gHBlankCopyTarget = (void *)REG_ADDR_BG2PA;
-    gBgOffsetsHBlank = world->bgTransforms;
+    gBgOffsetsHBlankPrimary = world->bgTransforms;
 
     unk5A0 = stage->cameraRotX;
     sin = SIN(unk5A0) * 4;
@@ -225,7 +225,7 @@ void sub_806EA04(void)
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
 
     i = stage->horizonHeight;
-    unk1884 = gBgOffsetsHBlank + (stage->horizonHeight * sizeof(BgAffineReg));
+    unk1884 = gBgOffsetsHBlankPrimary + (stage->horizonHeight * sizeof(BgAffineReg));
 
     for (; i < DISPLAY_HEIGHT; i++) {
         s32 *pos;
@@ -281,8 +281,8 @@ void sub_806EB74(void)
         for (i = 0; i < num; i++) {
             Sprite *s = &world->unk90[i];
 
-            sub_80036E0(s);
-            sub_8003914(s);
+            UpdateSpriteAnimation_BG(s);
+            DisplaySprite_BG(s);
         }
     }
 }

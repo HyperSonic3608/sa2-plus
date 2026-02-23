@@ -184,7 +184,7 @@ static const HammertankFunc sBossStateHandlers[] = {
     [EGG_HAMMER_TANK_II_STATE_DRAG] = StateHandler_HammerDrag,   [EGG_HAMMER_TANK_II_STATE_RETRACT] = StateHandler_HammerRetract,
 };
 
-static const u16 gUnknown_080D7AD0[][16] = {
+static const u16 gUnknown_080D7AD0[][PALETTE_LEN_4BPP] = {
     INCBIN_U16("graphics/80D7AD0.gbapal"),
     INCBIN_U16("graphics/80D7AF0.gbapal"),
 };
@@ -293,7 +293,7 @@ void CreateEggHammerTankII(void)
     SPRITE_INIT_SCRIPT(s, 1.0);
 
     s->frameFlags
-        = (gUnknown_030054B8++) | SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG(ROT_SCALE_ENABLE, 1) | SPRITE_FLAG(ROT_SCALE_DOUBLE_SIZE, 1);
+        = (gOamMatrixIndex++) | SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG(ROT_SCALE_ENABLE, 1) | SPRITE_FLAG(ROT_SCALE_DOUBLE_SIZE, 1);
 
     if (!IS_FINAL_STAGE(gCurrentLevel) && gSelectedCharacter == CHARACTER_SONIC && gLoadedSaveGame->unlockedLevels[0] <= gCurrentLevel) {
 
@@ -597,7 +597,7 @@ static void Render(EggHammerTankII *boss)
 
     s->x = x - 8 + ((COS((boss->hammerArmSegmentAngles[5]) & (SIN_PERIOD - 1)) * boss->hammerArmSegmentPositions[5]) >> 23);
     s->y = y + ((SIN((boss->hammerArmSegmentAngles[5]) & (SIN_PERIOD - 1)) * boss->hammerArmSegmentPositions[5]) >> 23);
-    s->frameFlags = gUnknown_030054B8++ | 0x2060;
+    s->frameFlags = gOamMatrixIndex++ | 0x2060;
 
     transform->rotation = (boss->hammerArmSegmentAngles[5] - (boss->hammerAngle) + boss->hammerArmSegmentAngles[5]) & (SIN_PERIOD - 1);
     if (transform->rotation != DEG_TO_SIN(270)) {
@@ -1425,7 +1425,7 @@ static void DestructionScene_Render(EggHammerTankII *boss)
 
     s->x = I(ds->hammerX) - gCamera.x;
     s->y = I(ds->hammerY) - gCamera.y;
-    s->frameFlags = gUnknown_030054B8++ | 0x2060;
+    s->frameFlags = gOamMatrixIndex++ | 0x2060;
 
     if (ds->hammerState != 0) {
         ds->hammerState = 2;
@@ -1613,8 +1613,8 @@ static void HandleBossHitPalette(EggHammerTankII *boss)
     if (boss->timerInvulnerability > 0) {
         u8 i;
 
-        for (i = 0; i < 16; i++) {
-            gObjPalette[8 * 16 + i] = gUnknown_080D7AD0[(boss->timerInvulnerability & 4) >> 2][i];
+        for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+            SET_PALETTE_COLOR_OBJ(8, i, gUnknown_080D7AD0[(boss->timerInvulnerability & 4) >> 2][i]);
         }
 
         gFlags |= FLAGS_UPDATE_SPRITE_PALETTES;

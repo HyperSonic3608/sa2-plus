@@ -21,7 +21,7 @@
 typedef struct {
     /* 0x00 */ SpriteBase base;
     /* 0x0C */ Sprite s;
-    /* 0x3C */ s32 timer;
+    /* 0x3C */ s32 qSpeedX;
     /* 0x40 */ s32 offsetX;
     /* 0x44 */ s32 offsetY;
 
@@ -39,8 +39,8 @@ typedef struct {
     SpriteTransform unkCC;
     SpriteTransform unkD8;
     SpriteTransform unkE4;
-    u16 timer;
-    s16 gravityStrength;
+    u16 qSpeedX;
+    s16 qSpeedY;
 } PlatformBreakParticles /* size 0xF4*/;
 
 static void Task_PlatformThinMain(void);
@@ -49,7 +49,7 @@ static void TaskDestructor_PlatformThin(struct Task *);
 static void Task_PlatformBreakParticlesMain(void);
 static void TaskDestructor_PlatformBreakParticles(struct Task *);
 
-void CreatePlatformBreakParticles(s16, s16);
+static void CreatePlatformBreakParticles(s16, s16);
 static u32 HandleThinPlatformCollision(Sprite *, s32, s32, Player *);
 
 static const ALIGNED(4) u16 sPlatformThinAnimations[][3] = {
@@ -86,7 +86,7 @@ void CreateEntity_PlatformThin(MapEntity *me, u16 spriteRegionX, u16 spriteRegio
     platform->base.regionX = spriteRegionX;
     platform->base.regionY = spriteRegionY;
     platform->base.me = me;
-    platform->base.spriteX = me->x;
+    platform->base.meX = me->x;
     platform->base.id = spriteY;
 
     platform->offsetX = 0;
@@ -128,7 +128,7 @@ static void Task_PlatformThinMain(void)
     platform = TASK_DATA(gCurTask);
     s = &platform->s;
     me = platform->base.me;
-    x = TO_WORLD_POS(platform->base.spriteX, platform->base.regionX);
+    x = TO_WORLD_POS(platform->base.meX, platform->base.regionX);
     y = TO_WORLD_POS(me->y, platform->base.regionY);
 
     s->x = x - gCamera.x;
@@ -201,7 +201,7 @@ static void Task_PlatformThinMain(void)
     }
 
     if (IS_OUT_OF_CAM_RANGE_TYPED(u32, x - gCamera.x, y - gCamera.y)) {
-        SET_MAP_ENTITY_NOT_INITIALIZED(me, platform->base.spriteX);
+        SET_MAP_ENTITY_NOT_INITIALIZED(me, platform->base.meX);
         TaskDestroy(gCurTask);
         return;
     }
@@ -209,132 +209,120 @@ static void Task_PlatformThinMain(void)
     DisplaySprite(s);
     return;
 }
-// (95.35%) https://decomp.me/scratch/8xD3v
-NONMATCH("asm/non_matching/game/sa1_sa2_shared/interactables/CreatePlatformBreakParticles.inc",
-         void CreatePlatformBreakParticles(s16 x, s16 y))
+
+#if !defined(NON_MATCHING)
+#define COPY_AND_INCREMENT(var) DmaCopy16(3, var, ++var, sizeof(*var));
+#else
+// has to be done this way for non GBA platforms as the code relies on the behaviour of the
+// original GBA compiler to match. However this is undefined behaviour in C, so for modern
+// compilers syntax like this is not allowed
+#define COPY_AND_INCREMENT(var)                                                                                                            \
+    {                                                                                                                                      \
+        void *p1 = var;                                                                                                                    \
+        void *p2 = ++var;                                                                                                                  \
+        DmaCopy16(3, p1, p2, sizeof(*var));                                                                                                \
+    }
+#endif
+
+static void CreatePlatformBreakParticles(s16 x, s16 y)
 {
     struct Task *t
         = TaskCreate(Task_PlatformBreakParticlesMain, sizeof(PlatformBreakParticles), 0x2011, 0, TaskDestructor_PlatformBreakParticles);
-    PlatformBreakParticles *platform = TASK_DATA(t);
+    PlatformBreakParticles *particles = TASK_DATA(t);
 
-    // Hack for better match
-#ifndef NON_MATCHING
-    register s32 r6 asm("r6");
-#else
-    s32 r6;
-#endif
+    SpriteTransform *transform;
+    Sprite *s;
 
-    {
-        Sprite *s = &platform->unk0;
-        SpriteTransform *transform = &platform->unkC0;
-        platform->timer = 0;
-        platform->gravityStrength = -0x200;
-        x -= 128;
-        y -= 50;
+    s = &particles->unk0;
+    transform = &particles->unkC0;
+    particles->qSpeedX = 0;
+    particles->qSpeedY = -Q(2);
+    x -= 128;
+    y -= 50;
 
-        // Init base 1
-        s->graphics.dest = VramMalloc(sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][0]);
-        s->graphics.anim = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][1];
-        s->variant = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][2];
+    // Init base 1
+    s->graphics.dest = VramMalloc(sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][0]);
+    s->graphics.anim = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][1];
+    s->variant = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][2];
 
-        s->oamFlags = SPRITE_OAM_ORDER(8);
-        s->graphics.size = 0;
-        s->animCursor = 0;
-        s->qAnimDelay = 0;
-        s->prevVariant = -1;
-        s->animSpeed = 0x10;
-        s->palId = 0;
-        s->frameFlags = 0x70;
+    s->oamFlags = SPRITE_OAM_ORDER(8);
+    s->graphics.size = 0;
+    s->animCursor = 0;
+    s->qAnimDelay = 0;
+    s->prevVariant = -1;
+    s->animSpeed = 0x10;
+    s->palId = 0;
+    s->frameFlags = 0x70;
 
-        // Init transform
-        transform->rotation = 0;
-        transform->qScaleX = Q(1);
-        transform->qScaleY = Q(1);
-        transform->x = x;
-        transform->y = y;
+    // Init transform
+    transform->rotation = 0;
+    transform->qScaleX = Q(1);
+    transform->qScaleY = Q(1);
+    transform->x = x;
+    transform->y = y;
 
-        UpdateSpriteAnimation(s);
+    UpdateSpriteAnimation(s);
 
-        // copy base 1
-        DmaCopy16(3, &platform->unk0, &platform->unk30, sizeof(Sprite));
-        s = &platform->unk30;
+    // copy base 1
+    COPY_AND_INCREMENT(s);
+    // copy transform
+    COPY_AND_INCREMENT(transform);
+    // Set the new params
+    s->frameFlags = 0x71;
+    transform->y = y - 16;
 
-        // copy transform
-        DmaCopy16(3, &platform->unkC0, &platform->unkCC, sizeof(SpriteTransform));
+    s = &particles->unk60;
+    // Copy the transform
+    COPY_AND_INCREMENT(transform);
 
-        // Set the new params
-        s->frameFlags = 0x71;
+    s->graphics.dest = VramMalloc(sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][3]);
+    s->graphics.anim = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][4];
+    s->variant = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][5];
+    s->oamFlags = SPRITE_OAM_ORDER(8);
+    s->graphics.size = 0;
+    s->animCursor = 0;
+    s->qAnimDelay = 0;
+    s->prevVariant = -1;
+    s->animSpeed = 0x10;
+    s->palId = 0;
+    s->frameFlags = 0x72;
 
-        transform = &platform->unkCC;
-        transform->y = y - 0x10;
-    }
+    // Set the transform props
+    transform->y = y;
 
-    {
-        Sprite *s;
-        SpriteTransform *transform;
-        // init base 2
-        s = &platform->unk60;
+    UpdateSpriteAnimation(s);
 
-        // Copy the transform
-        DmaCopy16(3, &platform->unkC0, &platform->unkD8, sizeof(SpriteTransform));
-
-        s->graphics.dest = VramMalloc(sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][3]);
-        s->graphics.anim = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][4];
-        s->variant = sPlatformBreakAnimations[LEVEL_TO_ZONE(gCurrentLevel)][5];
-        s->oamFlags = SPRITE_OAM_ORDER(8);
-        s->graphics.size = 0;
-        s->animCursor = 0;
-        s->qAnimDelay = 0;
-        s->prevVariant = -1;
-        s->animSpeed = 0x10;
-        s->palId = 0;
-        s->frameFlags = 0x72;
-
-        transform = &platform->unkD8;
-        // Set the transform props
-        transform->y = y;
-
-        UpdateSpriteAnimation(s);
-
-        // Copy base 2
-        DmaCopy16(3, &platform->unk60, &platform->unk90, sizeof(Sprite));
-        s = &platform->unk90;
-
-        // Copy the transform
-        DmaCopy16(3, &platform->unkD8, &platform->unkE4, sizeof(SpriteTransform));
-        transform = &platform->unkE4;
-
-        // Update props
-        s->frameFlags = 0x73;
-
-        // used to help match atm
-        r6 = y - 0x10;
-        transform->y = r6;
-    }
+    // Copy base 2
+    COPY_AND_INCREMENT(s);
+    // Copy the transform
+    COPY_AND_INCREMENT(transform);
+    // Update props
+    s->frameFlags = 0x73;
+    transform->y = y - 16;
 
     m4aSongNumStart(SE_278);
 }
-END_NONMATCH
 
 static void Task_PlatformBreakParticlesMain(void)
 {
     s16 x, y;
-    PlatformBreakParticles *platform = TASK_DATA(gCurTask);
+    PlatformBreakParticles *particles = TASK_DATA(gCurTask);
     Sprite *s;
     s16 width;
     SpriteTransform *transform;
-    if (platform->timer++ >= 0x3D) {
+    // Speed is also used as a timer
+    if (particles->qSpeedX++ > 60) {
         TaskDestroy(gCurTask);
         return;
     }
 
-    platform->gravityStrength += 0x28;
+    particles->qSpeedY += Q(0.15625);
 
     //
-    s = &platform->unk0;
-    transform = &platform->unkC0;
+    s = &particles->unk0;
+    transform = &particles->unkC0;
 
-    transform->y += I(platform->gravityStrength);
+    transform->y += I(particles->qSpeedY);
 
     x = transform->x;
     y = transform->y;
@@ -342,7 +330,7 @@ static void Task_PlatformBreakParticlesMain(void)
     transform->x -= gCamera.x;
     transform->y -= gCamera.y;
 
-    transform->x -= platform->timer * 2;
+    transform->x -= particles->qSpeedX * 2;
 
     width = transform->qScaleX + 8;
     if (width > 0x200) {
@@ -353,7 +341,7 @@ static void Task_PlatformBreakParticlesMain(void)
     transform->rotation -= 0x2A;
 
     s->frameFlags &= ~0x1F;
-    s->frameFlags |= gUnknown_030054B8++;
+    s->frameFlags |= gOamMatrixIndex++;
     sub_8004E14(s, transform);
     DisplaySprite(s);
 
@@ -361,10 +349,10 @@ static void Task_PlatformBreakParticlesMain(void)
     transform->y = y;
 
     //
-    s = &platform->unk30;
-    transform = &platform->unkCC;
+    s = &particles->unk30;
+    transform = &particles->unkCC;
 
-    transform->y += I(platform->gravityStrength);
+    transform->y += I(particles->qSpeedY);
 
     x = transform->x;
     y = transform->y;
@@ -372,14 +360,14 @@ static void Task_PlatformBreakParticlesMain(void)
     transform->x -= gCamera.x;
     transform->y -= gCamera.y;
 
-    transform->x += platform->timer;
+    transform->x += particles->qSpeedX;
 
     transform->qScaleX = width;
     transform->qScaleY = width;
     transform->rotation += 0x2A;
 
     s->frameFlags &= ~0x1F;
-    s->frameFlags |= gUnknown_030054B8++;
+    s->frameFlags |= gOamMatrixIndex++;
     sub_8004E14(s, transform);
     DisplaySprite(s);
 
@@ -387,24 +375,24 @@ static void Task_PlatformBreakParticlesMain(void)
     transform->y = y;
 
     //
-    s = &platform->unk60;
-    transform = &platform->unkD8;
+    s = &particles->unk60;
+    transform = &particles->unkD8;
 
-    transform->y += I(platform->gravityStrength);
+    transform->y += I(particles->qSpeedY);
 
     x = transform->x;
     y = transform->y;
 
     transform->x -= gCamera.x;
     transform->y -= gCamera.y;
-    transform->x += platform->timer * 2;
+    transform->x += particles->qSpeedX * 2;
 
     transform->qScaleX = width;
     transform->qScaleY = width;
     transform->rotation += 0xE;
 
     s->frameFlags &= ~0x1F;
-    s->frameFlags |= gUnknown_030054B8++;
+    s->frameFlags |= gOamMatrixIndex++;
     sub_8004E14(s, transform);
     DisplaySprite(s);
 
@@ -412,24 +400,24 @@ static void Task_PlatformBreakParticlesMain(void)
     transform->y = y;
 
     //
-    s = &platform->unk90;
-    transform = &platform->unkE4;
+    s = &particles->unk90;
+    transform = &particles->unkE4;
 
-    transform->y += I(platform->gravityStrength);
+    transform->y += I(particles->qSpeedY);
 
     x = transform->x;
     y = transform->y;
 
     transform->x -= gCamera.x;
     transform->y -= gCamera.y;
-    transform->x -= platform->timer;
+    transform->x -= particles->qSpeedX;
 
     transform->qScaleX = width;
     transform->qScaleY = width;
     transform->rotation -= 0xE;
 
     s->frameFlags &= ~0x1F;
-    s->frameFlags |= gUnknown_030054B8++;
+    s->frameFlags |= gOamMatrixIndex++;
     sub_8004E14(s, transform);
     DisplaySprite(s);
 

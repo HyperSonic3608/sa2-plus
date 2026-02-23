@@ -1,8 +1,8 @@
 #ifndef GUARD_MAIN_H
 #define GUARD_MAIN_H
-// for memcpy
+
 #ifndef GEN_CTX
-#include <string.h>
+#include <string.h> // for memcpy
 #endif
 
 #include "global.h"
@@ -242,16 +242,16 @@ extern union MultiSioData gMultiSioRecv[4];
 extern u32 gMultiSioStatusFlags;
 extern bool8 gMultiSioEnabled;
 
-extern HBlankFunc gHBlankIntrs[4];
-extern HBlankFunc gHBlankCallbacks[4];
+extern HBlankIntrFunc gHBlankIntrs[4];
+extern HBlankIntrFunc gHBlankCallbacks[4];
 extern u8 gNumHBlankCallbacks;
 extern u8 gNumHBlankIntrs;
 
-extern u8 gIwramHeap[0x2204];
+extern u8 gIwramHeap[TASK_HEAP_SIZE];
 
 extern void *gVramHeapStartAddr;
 extern u16 gVramHeapMaxTileSlots;
-extern u16 gVramHeapState[256];
+extern u16 gVramHeapState[OBJ_VRAM_TOTAL_SIZE / VRAM_HEAP_SEGMENT_SIZE];
 
 extern bool8 gExecSoundMain;
 
@@ -264,18 +264,25 @@ extern u16 gDispCnt;
 #define WINREG_WININ  4
 #define WINREG_WINOUT 5
 
+#define PALETTE_LEN_4BPP                                    16u
+#define GET_PALETTE_COLOR_OBJ(_paletteId, _colorId)         gObjPalette[(_paletteId)*PALETTE_LEN_4BPP + (_colorId)]
+#define GET_PALETTE_COLOR_BG(_paletteId, _colorId)          gBgPalette[(_paletteId)*PALETTE_LEN_4BPP + (_colorId)]
+#define SET_PALETTE_COLOR_OBJ(_paletteId, _colorId, _color) GET_PALETTE_COLOR_OBJ(_paletteId, _colorId) = (_color);
+#define SET_PALETTE_COLOR_BG(_paletteId, _colorId, _color)  GET_PALETTE_COLOR_BG(_paletteId, _colorId) = (_color);
+
 extern winreg_t gWinRegs[6];
 extern struct BlendRegs gBldRegs;
 extern BgAffineReg gBgAffineRegs[NUM_AFFINE_BACKGROUNDS];
-extern u16 gObjPalette[OBJ_PLTT_SIZE / sizeof(u16)];
-extern u16 gBgPalette[BG_PLTT_SIZE / sizeof(u16)];
+extern u16 gObjPalette[16 * PALETTE_LEN_4BPP];
+extern u16 gBgPalette[16 * PALETTE_LEN_4BPP];
+
 extern u16 gBgCntRegs[4];
 
 // TODO: Turn this into a struct-array?
 //       [4]{s16 x, s16 y}
 extern s16 gBgScrollRegs[NUM_BACKGROUNDS][2];
 
-extern OamData gOamBuffer2[OAM_ENTRY_COUNT];
+extern OamData gOamMallocBuffer[OAM_ENTRY_COUNT];
 extern OamData gOamBuffer[OAM_ENTRY_COUNT];
 
 // NOTE(Jace): This could be u16[2][DISPLAY_HEIGHT][2] (or unsigned Vec2_16?)
@@ -283,21 +290,21 @@ extern int_vcount gBgOffsetsBuffer[2][DISPLAY_HEIGHT][4];
 extern Background *gBackgroundsCopyQueue[16];
 
 // This is used to buffer the xy-shift for each background scanline
-extern void *gBgOffsetsHBlank;
+extern void *gBgOffsetsHBlankPrimary;
 
-extern u16 gUnknown_030017F0;
-extern s16 gUnknown_030017F4[2];
-extern u8 gUnknown_03001850[32];
-extern FuncType_030053A0 gVBlankCallbacks[4];
+extern u16 SA2_LABEL(gUnknown_030017F0);
+extern Vec2_16 gSpriteOffset;
+extern u8 gOamMallocOrders_StartIndex[32];
+extern IntrFunc gVBlankCallbacks[4];
 
 extern u8 gOamFreeIndex;
-extern u16 gUnknown_03001944;
+extern u16 SA2_LABEL(gUnknown_03001944);
 extern u8 gNumVBlankIntrs;
-extern s16 gUnknown_0300194C;
+extern s16 SA2_LABEL(gUnknown_0300194C);
 
 extern Tilemap **gTilemapsRef;
-extern u8 gUnknown_03002280[4][4];
-extern u8 gUnknown_03004D80[16]; // TODO: Is this 4 (# backgrounds), instead of 16?
+extern u8 gBgSprites_Unknown2[4][4];
+extern u8 gBgSprites_Unknown1[4];
 
 #define LOG_GRAPHICS_QUEUE !TRUE
 #if (!PLATFORM_GBA && LOG_GRAPHICS_QUEUE)
@@ -347,14 +354,14 @@ extern struct GraphicsData gVramGraphicsCopyQueueBuffer[32];
     gBackgroundsCopyQueue[gBackgroundsCopyQueueIndex] = _bg;                                                                               \
     INC_BACKGROUNDS_QUEUE_CURSOR(gBackgroundsCopyQueueIndex);
 
-extern void *gUnknown_030022AC;
-extern void *gUnknown_030022C0;
+extern void *gBgOffsetsHBlankSecondary;
+extern void *gBgOffsetsSecondary;
 #if (GAME == GAME_SA2)
 extern s16 gMosaicReg;
 extern u8 gUnknown_030026F4;
 #endif
-extern s16 gUnknown_03002820;
-extern u8 gUnknown_03002874;
+extern s16 SA2_LABEL(gUnknown_03002820);
+extern u8 gVCountSetting;
 extern void *gHBlankCopyTarget;
 extern u8 gBackgroundsCopyQueueIndex;
 extern u8 gHBlankCopySize;
@@ -363,18 +370,18 @@ extern u16 gUnknown_03002A8C;
 // of the OAM. This is the index of the first currently-inactive element
 extern u8 gOamFirstPausedIndex;
 extern u8 gBackgroundsCopyQueueCursor;
-extern Sprite *gUnknown_03004D10[16];
+extern Sprite *gBgSprites[16];
 extern u8 gNumVBlankCallbacks;
-extern void *gUnknown_03004D54;
-extern u16 gUnknown_03004D58;
+extern void *gBgOffsetsPrimary;
+extern u16 SA2_LABEL(gUnknown_03004D58);
 extern u8 gVramGraphicsCopyCursor;
-extern u8 gUnknown_03004D60[0x20];
-extern u8 gUnknown_03005390;
-extern u16 gUnknown_03005394;
-extern u16 gUnknown_03005398;
-extern FuncType_030053A0 gVBlankIntrs[4];
+extern u8 gOamMallocOrders_EndIndex[0x20];
+extern u8 gBgSpritesCount;
+extern u16 SA2_LABEL(gUnknown_03005394);
+extern u16 SA2_LABEL(gUnknown_03005398);
+extern IntrFunc gVBlankIntrs[4];
 extern s32 gPseudoRandom;
-extern u8 gUnknown_03002710[128];
+extern u8 gOamMallocCopiedOrder[128];
 extern struct MultiBootParam gMultiBootParam;
 
 extern const struct SpriteTables *gRefSpriteTables;

@@ -95,7 +95,7 @@ static const u16 sKnucklesAnimData_FX[2][3] = {
 
 /* Character: Sonic */
 
-struct Task *Player_SonicAmy_InitSkidAttackGfxTask(s32 x, s32 y, u16 p2)
+struct Task *CreateSonicAmySkidAttackEffect(s32 x, s32 y, u16 p2)
 {
     MultiplayerSpriteTask *ts;
     struct Task *t;
@@ -138,7 +138,7 @@ struct Task *Player_SonicAmy_InitSkidAttackGfxTask(s32 x, s32 y, u16 p2)
 }
 
 // For Sonic's Down-Trick "Bound"
-struct Task *Player_Sonic_Bound(s32 x, s32 y)
+struct Task *CreateSonicBoundEffect(s32 x, s32 y)
 {
     if (IS_MULTI_PLAYER) {
         return NULL;
@@ -229,7 +229,7 @@ void Player_SonicAmy_WindupSkidAttack(Player *p)
                     p->qSpeedGround = +Q(4.0);
                 }
             } else {
-                Player_SonicAmy_InitSkidAttackGfxTask(I(p->qWorldX), I(p->qWorldY), 0);
+                CreateSonicAmySkidAttackEffect(I(p->qWorldX), I(p->qWorldY), 0);
             }
 
             p->unk72 = 32;
@@ -375,7 +375,7 @@ void Player_SonicForwardThrust(Player *p)
 
     Player_TransitionCancelFlyingAndBoost(p);
     p->moveState |= MOVESTATE_IN_AIR;
-    p->moveState &= ~(MOVESTATE_1000000 | MOVESTATE_20 | MOVESTATE_4);
+    p->moveState &= ~(MOVESTATE_1000000 | MOVESTATE_20 | MOVESTATE_SPIN_ATTACK);
 
     PLAYERFN_CHANGE_SHIFT_OFFSETS(p, 6, 14);
 
@@ -527,7 +527,7 @@ void Player_SonicAmy_WindupStopNSlam(Player *p)
         PLAYERFN_SET(Player_SonicAmy_StopNSlam);
 
         if (p->character == CHARACTER_SONIC) {
-            Player_Sonic_Bound(I(p->qWorldX), I(p->qWorldY));
+            CreateSonicBoundEffect(I(p->qWorldX), I(p->qWorldY));
         } else if (p->character == CHARACTER_AMY) {
             CreateAmyAttackHeartEffect(AMY_HEART_PATTERN_STOP_N_SLAM);
         }
@@ -536,7 +536,7 @@ void Player_SonicAmy_WindupStopNSlam(Player *p)
 
 void Player_SonicAmy_StopNSlam_AfterGroundCollision(Player *p)
 {
-    p->qSpeedAirY += Q(56.0 / 256.0);
+    p->qSpeedAirY += TRICK__STOP_N_SLAM__DROP_SPEED;
 
     if (p->qSpeedAirY >= 0) {
         p->variant++;
@@ -690,8 +690,8 @@ void Player_Cream_InitFlying(Player *p)
 {
     Player_TransitionCancelFlyingAndBoost(p);
 
-    if (p->moveState & MOVESTATE_4) {
-        p->moveState &= ~MOVESTATE_4;
+    if (p->moveState & MOVESTATE_SPIN_ATTACK) {
+        p->moveState &= ~MOVESTATE_SPIN_ATTACK;
 
         PLAYERFN_CHANGE_SHIFT_OFFSETS(p, 6, 14);
     }
@@ -865,7 +865,7 @@ void Player_Cream_WindupMidAirChaoAttack(Player *p)
 
 /* Character: Tails */
 
-struct Task *sub_80129DC(s32 x, s32 y)
+struct Task *CreateTailsTailSwipeEffect(s32 x, s32 y)
 {
     struct Task *result;
 
@@ -951,8 +951,8 @@ void Player_Tails_InitFlying(Player *p)
 {
     Player_TransitionCancelFlyingAndBoost(p);
 
-    if (p->moveState & MOVESTATE_4) {
-        p->moveState &= ~MOVESTATE_4;
+    if (p->moveState & MOVESTATE_SPIN_ATTACK) {
+        p->moveState &= ~MOVESTATE_SPIN_ATTACK;
 
         PLAYERFN_CHANGE_SHIFT_OFFSETS(p, 6, 14);
     }
@@ -1035,7 +1035,7 @@ void Player_Tails_InitTailSwipe(Player *p)
 
     p->moveState |= MOVESTATE_SOME_ATTACK;
 
-    sub_80129DC(I(p->qWorldX), I(p->qWorldY));
+    CreateTailsTailSwipeEffect(I(p->qWorldX), I(p->qWorldY));
 
     m4aSongNumStart(SE_TAILS_TAIL_SWIPE);
 
@@ -1067,7 +1067,7 @@ void Player_Tails_TailSwipe(Player *p)
 
 /* Character: Knuckles */
 
-struct Task *sub_8012DF8(s32 x, s32 y, u16 p2)
+struct Task *CreateKnucklesFireEffect(s32 x, s32 y, u16 p2)
 {
     struct Task *result;
 
@@ -1202,7 +1202,7 @@ void Player_Knuckles_InitSpiralAttack(Player *p)
 
     p->moveState |= MOVESTATE_SOME_ATTACK;
 
-    sub_8012DF8(I(p->qWorldX), I(p->qWorldY), 0);
+    CreateKnucklesFireEffect(I(p->qWorldX), I(p->qWorldY), 0);
 
     p->unk72 = 32;
 
@@ -1747,7 +1747,7 @@ void sub_801394C(Player *p)
         if (p->moveState & MOVESTATE_FACING_LEFT)
             p->qSpeedAirX = -p->qSpeedAirX;
 
-        p->moveState |= MOVESTATE_4;
+        p->moveState |= MOVESTATE_SPIN_ATTACK;
         p->moveState |= MOVESTATE_IN_AIR;
         p->moveState |= MOVESTATE_100;
 
@@ -1760,15 +1760,16 @@ void sub_801394C(Player *p)
 
 // (76.32%) https://decomp.me/scratch/8fUWD
 // (97.64%) https://decomp.me/scratch/Bd3kQ
+// (98.61%) https://decomp.me/scratch/0zv3B
 NONMATCH("asm/non_matching/game/player__sub_80139B0.inc", void Knuckles_Glide_UpdateSpeed(Player *player))
 {
     s32 speedGrnd = ABS(player->qSpeedGround);
-    u8 r2 = player->w.tf.shift;
+    s8 shift = player->w.kf.shift;
 
     if (speedGrnd < Q_24_8(3.0)) {
         speedGrnd += Q_24_8(6.0 / 256.0);
     } else if (speedGrnd < Q_24_8(15.0)) {
-        if ((player->w.tf.shift & 0x7F) == 0)
+        if ((player->w.kf.shift & 0x7F) == 0)
             speedGrnd += Q_24_8(3.0 / 256.0);
     }
     // _080139E4
@@ -1780,7 +1781,7 @@ NONMATCH("asm/non_matching/game/player__sub_80139B0.inc", void Knuckles_Glide_Up
     }
 
     {
-        s8 shift = player->w.tf.shift + Q_24_8(0.25);
+        s8 shift = player->w.kf.shift + Q_24_8(0.25);
         if (shift <= 0) {
             player->qSpeedGround = -speedGrnd;
         } else {
@@ -1789,32 +1790,28 @@ NONMATCH("asm/non_matching/game/player__sub_80139B0.inc", void Knuckles_Glide_Up
     }
 
     {
-        s32 r0;
-        u8 shift = r2;
         if (player->heldInput & DPAD_LEFT) {
-            s32 r0 = r2;
-            if ((u8)r0 != 128) {
-                r2 = ABS((s8)shift);
-                shift = r2 + 2;
+            if ((u8)shift != 128) {
+                if (shift < 0)
+                    shift = -shift;
+                shift += 2;
             }
+            player->w.kf.shift = shift;
         } else if (player->heldInput & DPAD_RIGHT) {
-            s32 r0 = r2;
-            if (((s8)r0 != 0)) {
-                s8 r2Signed = (s8)r2 > 0 ? -r0 : r2;
-                shift = r2Signed + 2;
+            if (shift != 0) {
+                if (shift > 0)
+                    shift = -shift;
+                shift += 2;
             }
+            player->w.kf.shift = shift;
         } else {
-            s32 r0;
-            s8 r1;
-            r1 = shift;
-            if (r1 & 0x7F) {
-                r0 = r1 + 2;
-                shift = (u8)r0;
+            if (shift & 0x7F) {
+                shift += 2;
             }
+            player->w.kf.shift = shift;
         }
-        player->w.tf.shift = (u8)shift;
-        r0 = shift;
-        player->qSpeedAirX = Q_24_8_TO_INT(COS_24_8((u8)r0 << 2) * speedGrnd);
+
+        player->qSpeedAirX = I(COS_24_8(shift << 2) * speedGrnd);
 
         if (player->qSpeedAirY < Q_24_8(0.5)) {
             player->qSpeedAirY += Q_24_8(0.09375);
@@ -1833,7 +1830,7 @@ END_NONMATCH
 
 void Player_Knuckles_InitGlide(Player *p)
 {
-    p->moveState &= ~MOVESTATE_4;
+    p->moveState &= ~MOVESTATE_SPIN_ATTACK;
     p->spriteOffsetX = 6;
     p->spriteOffsetY = 6;
 
@@ -2031,13 +2028,13 @@ void Player_Knuckles_WindupDrillClaw(Player *p)
         p->qSpeedAirX = Q(0.0);
         p->qSpeedAirY = Q(1.0);
 
-        sub_8012DF8(I(p->qWorldX), I(p->qWorldY), 1);
+        CreateKnucklesFireEffect(I(p->qWorldX), I(p->qWorldY), 1);
 
         PLAYERFN_SET_AND_CALL(Player_Knuckles_DrillClaw, p);
     }
 }
 
-void Player_8013E34(Player *p);
+void Player_Knuckles_DrillClawLanding(Player *p);
 
 void Player_Knuckles_DrillClaw(Player *p)
 {
@@ -2046,14 +2043,14 @@ void Player_Knuckles_DrillClaw(Player *p)
     sub_80283C4(p);
 
     if (!(p->moveState & MOVESTATE_IN_AIR)) {
-        PLAYERFN_SET(Player_8013E34);
+        PLAYERFN_SET(Player_Knuckles_DrillClawLanding);
 
         p->charState = CHARSTATE_KNUCKLES_DRILL_CLAW_GROUND;
         p->qSpeedAirY = 0;
     }
 }
 
-void Player_8013E34(Player *p)
+void Player_Knuckles_DrillClawLanding(Player *p)
 {
     Player_HandlePhysicsWithAirInput(p);
 

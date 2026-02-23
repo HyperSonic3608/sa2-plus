@@ -152,7 +152,7 @@ static const u16 gUnknown_080D7B4E[][2] = {
 
 static const BossFunction sBossModeTasks[] = { HandleCannonBombTrigger, HandleCannonlessBombTrigger };
 
-static const u16 gUnknown_080D7B70[][16] = {
+static const u16 gUnknown_080D7B70[][PALETTE_LEN_4BPP] = {
     INCBIN_U16("graphics/80D7B70.gbapal"),
     INCBIN_U16("graphics/80D7B90.gbapal"),
 };
@@ -254,7 +254,7 @@ void CreateEggBomberTank(void)
     s->graphics.dest = vram;
     vram += 64 * TILE_SIZE_4BPP;
     SPRITE_INIT_ANIM_AND_SCRIPT(s, SA2_ANIM_EGG_BOMBER_TANK_CANNON, 0, 25);
-    s->frameFlags = (gUnknown_030054B8++) | 0x2060;
+    s->frameFlags = (gOamMatrixIndex++) | 0x2060;
 
     s = &boss->pilot;
     s->x = 0;
@@ -433,7 +433,7 @@ static u8 RenderEggBomberTank(EggBomberTank *boss)
             s->x -= Div(COS(boss->cannonAngle) * boss->timer, 25000);
             s->y -= Div(SIN(boss->cannonAngle) * boss->timer, 25000);
         }
-        s->frameFlags = gUnknown_030054B8++ | 0x2060;
+        s->frameFlags = gOamMatrixIndex++ | 0x2060;
 
         transform->rotation = boss->cannonAngle;
         transform->qScaleX = Q(1);
@@ -575,23 +575,23 @@ static void UpdateBomberTankPalette(EggBomberTank *boss)
 {
     u8 i;
     if (boss->bossHitTimer != 0) {
-        for (i = 0; i < 16; i++) {
-            gObjPalette[i + 0x80] = gUnknown_080D7B70[(gStageTime & 2) >> 1][i];
+        for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+            SET_PALETTE_COLOR_OBJ(8, i, gUnknown_080D7B70[(gStageTime & 2) >> 1][i]);
         }
     } else {
-        for (i = 0; i < 16; i++) {
-            gObjPalette[i + 0x80] = gUnknown_080D7B70[1][i];
+        for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+            SET_PALETTE_COLOR_OBJ(8, i, gUnknown_080D7B70[1][i]);
         }
     }
 
     if (boss->cannonHitTimer != 0) {
         boss->cannonHitTimer--;
-        for (i = 0; i < 16; i++) {
-            gObjPalette[i + 0xD0] = gUnknown_080D7B70[(gStageTime & 2) >> 1][i];
+        for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+            SET_PALETTE_COLOR_OBJ(13, i, gUnknown_080D7B70[(gStageTime & 2) >> 1][i]);
         }
     } else {
-        for (i = 0; i < 16; i++) {
-            gObjPalette[i + 0xD0] = gUnknown_080D7B70[1][i];
+        for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+            SET_PALETTE_COLOR_OBJ(13, i, gUnknown_080D7B70[1][i]);
         }
     }
 
@@ -683,7 +683,7 @@ static bool8 RenderCannon(EggBomberTank *boss)
 
     s->x = (I(boss->unk54) - gCamera.x);
     s->y = (I(boss->unk58) - gCamera.y);
-    s->frameFlags = gUnknown_030054B8++ | 0x2060;
+    s->frameFlags = gOamMatrixIndex++ | 0x2060;
 
     transform->rotation = boss->cannonAngle;
     transform->qScaleX = Q(1);

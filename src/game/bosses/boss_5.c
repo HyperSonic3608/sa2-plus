@@ -16,7 +16,7 @@
 #include "game/stage/terrain_collision.h"
 #include "game/stage/player.h"
 #include "game/stage/camera.h"
-#include "game/stage/game_7.h"
+#include "game/stage/screen_mask.h"
 
 #include "game/stage/screen_fade.h"
 
@@ -43,10 +43,10 @@ typedef struct {
 
     /* 0x16 */ u16 cabinDiskAngle;
     /* 0x18 */ u16 gunDiskAngle;
-    /* 0x1A */ u16 unk1A;
+    /* 0x1A */ u16 gunAngle;
     /* 0x1C */ u16 unk1C;
 
-    /* 0x1E */ u8 unk1E;
+    /* 0x1E */ u8 chargeBeamWidth;
     /* 0x1F */ u8 unk1F;
     /* 0x20 */ u8 unk20;
 
@@ -149,7 +149,7 @@ static const TileInfo gUnknown_080D7FB0[] = {
     { 2, SA2_ANIM_EGG_SAUCER_SMACK_PARTICLE_UP, 0 },    { 4, SA2_ANIM_EGG_SAUCER_SMACK_PARTICLE_UP_RIGHT, 0 },
 };
 
-static const u16 gUnknown_080D7FF0[][16] = {
+static const u16 gUnknown_080D7FF0[][PALETTE_LEN_4BPP] = {
     INCBIN_U16("graphics/80D7FF0.gbapal"),
     INCBIN_U16("graphics/80D8010.gbapal"),
 };
@@ -207,12 +207,7 @@ void CreateEggSaucer(void)
     gBgScrollRegs[0][0] = 0;
     gBgScrollRegs[0][1] = 0;
 
-    gUnknown_03004D80[0] = 0;
-
-    gUnknown_03002280[0][0] = 0;
-    gUnknown_03002280[0][1] = 0;
-    gUnknown_03002280[0][2] = 0xff;
-    gUnknown_03002280[0][3] = 64;
+    INIT_BG_SPRITES_LAYER_64(0);
 
     gPlayer.moveState |= MOVESTATE_IGNORE_INPUT;
 
@@ -278,9 +273,9 @@ void CreateEggSaucer(void)
     boss->gunDiskAngle = DEG_TO_SIN(0);
     boss->armDiskAngle = DEG_TO_SIN(240);
 
-    boss->unk1A = 0x200;
+    boss->gunAngle = DEG_TO_SIN(180);
     boss->unk1C = gUnknown_080D7F94[1] * 2;
-    boss->unk1E = 0;
+    boss->chargeBeamWidth = 0;
     boss->unk34 = 0;
     boss->unkB6 = 0;
     boss->unk32 = 0;
@@ -318,8 +313,8 @@ void CreateEggSaucer(void)
     s->graphics.dest = (void *)VRAM + 0xC000;
     SPRITE_INIT_WITHOUT_VRAM(s, SA2_ANIM_EGG_SAUCER_DISK, 0, 31, 3, SPRITE_FLAG(18, 1));
 
-    sub_80036E0(s);
-    sub_8003914(s);
+    UpdateSpriteAnimation_BG(s);
+    DisplaySprite_BG(s);
 
     s = &boss->pilot;
     s->x = 0;
@@ -360,8 +355,7 @@ void CreateEggSaucer(void)
     // Seems a lot of tiles for this
     vram += 64 * TILE_SIZE_4BPP;
     SPRITE_INIT_ANIM_AND_SCRIPT(s, SA2_ANIM_EGG_SAUCER_GUN, 0, 23);
-    s->frameFlags
-        = gUnknown_030054B8++ | SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG(ROT_SCALE_ENABLE, 1) | SPRITE_FLAG(ROT_SCALE_DOUBLE_SIZE, 1);
+    s->frameFlags = gOamMatrixIndex++ | SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG(ROT_SCALE_ENABLE, 1) | SPRITE_FLAG(ROT_SCALE_DOUBLE_SIZE, 1);
 
     s = &boss->gunCharge;
     s->x = 0;
@@ -591,9 +585,9 @@ void sub_80438C4(EggSaucer *boss)
         transform = &boss->transform;
         s->x = x + ((COS(boss->gunDiskAngle) * 5) >> 11) - 2;
         s->y = y + ((SIN(boss->gunDiskAngle) * 5) >> 11) - 19;
-        s->frameFlags = gUnknown_030054B8++ | 0x1060;
+        s->frameFlags = gOamMatrixIndex++ | 0x1060;
 
-        transform->rotation = boss->unk1A;
+        transform->rotation = boss->gunAngle;
         transform->qScaleX = Q(1);
         transform->qScaleY = Q(1);
         transform->x = s->x;
@@ -765,9 +759,9 @@ void sub_8043E2C(EggSaucer *boss)
         transform = &boss->transform;
         s->x = (I(x) - gCamera.x) - 2;
         s->y = (I(y) - gCamera.y) - 19;
-        s->frameFlags = gUnknown_030054B8++ | 0x1060;
+        s->frameFlags = gOamMatrixIndex++ | 0x1060;
 
-        transform->rotation = boss->unk1A;
+        transform->rotation = boss->gunAngle;
         transform->qScaleX = 256;
         transform->qScaleY = 256;
         transform->x = s->x;
@@ -1073,20 +1067,20 @@ void sub_8044784(EggSaucer *boss)
 
     x = (I(boss->x) - gCamera.x);
     x += ((COS(boss->gunDiskAngle) * 5) >> 11);
-    x += ((COS(boss->unk1A) * 3) >> 11);
+    x += ((COS(boss->gunAngle) * 3) >> 11);
 
     y = (I(boss->y) - gCamera.y);
     y += (SIN(boss->gunDiskAngle) * 5) >> 11;
-    y -= 0x12;
-    y += (SIN(boss->unk1A) * 3) >> 11;
+    y -= 18;
+    y += (SIN(boss->gunAngle) * 3) >> 11;
 
     someBool = FALSE;
-    if (boss->unk1E != 0 && boss->unk1C == 0) {
-        fade->brightness = Q(SCREEN_FADE_BLEND_MAX) - Q_8_8((--boss->unk1E));
-        sub_802E784(boss->unk1A, boss->unk1E + 8, 6, x, y, 0x20);
+    if (boss->chargeBeamWidth != 0 && boss->unk1C == 0) {
+        fade->brightness = Q(SCREEN_FADE_BLEND_MAX) - Q_8_8(--boss->chargeBeamWidth);
+        ScreenMask_CreateShape(boss->gunAngle, boss->chargeBeamWidth + 8, 6, x, y, 32);
 
         someBool = TRUE;
-        if (boss->unk1E == 0) {
+        if (boss->chargeBeamWidth == 0) {
             boss->unk1C = gUnknown_080D7F94[boss->health > 4 ? 1 : 0];
         }
     } else {
@@ -1096,18 +1090,18 @@ void sub_8044784(EggSaucer *boss)
         boss->unk1C--;
         if (boss->unk1C == 0) {
             m4aSongNumStart(SE_252);
-            boss->unk1E = 0x10;
-        } else if (boss->unk1C >= 0xB && boss->unk1C < 40) {
-            fade->brightness = 0x2000 - ((tmp - 0xB) * 0x80);
-            sub_802E784(boss->unk1A, 10, 6, x, y, 0x20);
+            boss->chargeBeamWidth = 16;
+        } else if (boss->unk1C > 10 && boss->unk1C < 40) {
+            fade->brightness = Q(SCREEN_FADE_BLEND_MAX) - ((tmp - 11) * Q(0.5));
+            ScreenMask_CreateShape(boss->gunAngle, 10, 6, x, y, 32);
         }
 
-        if (boss->unk1C < 0xD) {
+        if (boss->unk1C < 13) {
             s = &boss->gunCharge;
             s->x = x;
             s->y = y;
 
-            if (boss->unk1C == 0xC) {
+            if (boss->unk1C == 12) {
                 s->prevVariant = -1;
                 s->graphics.anim = SA2_ANIM_EGG_SAUCER_GUN_CHARGE;
                 s->variant = 0;
@@ -1118,7 +1112,7 @@ void sub_8044784(EggSaucer *boss)
     UpdateScreenFade(fade);
 
     y = I(gPlayer.qWorldY);
-    y += 0x13;
+    y += 19;
     y -= (I(boss->y) + ((SIN(boss->gunDiskAngle) * 5) >> 11));
     x = ({
         s32 temp3;
@@ -1128,17 +1122,17 @@ void sub_8044784(EggSaucer *boss)
     });
     temp = sub_8004418(y, x);
     if (gStageTime & 1) {
-        if (boss->unk1A < temp) {
-            if (boss->unk1A <= 0x23F) {
-                boss->unk1A += 1;
+        if (boss->gunAngle < temp) {
+            if (boss->gunAngle < DEG_TO_SIN(202.5)) {
+                boss->gunAngle += 1;
             }
         } else {
-            if (boss->unk1A >= 0x1C1) {
-                boss->unk1A -= 1;
+            if (boss->gunAngle > DEG_TO_SIN(157.5)) {
+                boss->gunAngle -= 1;
             }
         }
     }
-    if (someBool && (boss->unk1A - 0x10) < temp && (boss->unk1A + 0x10) > temp) {
+    if (someBool && (boss->gunAngle - DEG_TO_SIN(5.625)) < temp && (boss->gunAngle + DEG_TO_SIN(5.625)) > temp) {
         Coll_DamagePlayer(&gPlayer);
     }
 }
@@ -1299,6 +1293,7 @@ static void sub_8044CBC(EggSaucer *boss)
             s->prevVariant = -1;
         }
     }
+
     boss->unk36[0][boss->unkB6] = boss->unkB8;
     boss->unk36[1][boss->unkB6] = boss->unkBA;
 
@@ -1762,27 +1757,27 @@ void sub_8045898(EggSaucer *boss)
     if (boss->unk15 == 0) {
         val = (gStageTime & 2) >> 1;
         if (boss->unk13 != 0) {
-            for (i = 0; i < 0x10; i++) {
-                gObjPalette[i + 0x80] = gUnknown_080D7FF0[val][i];
+            for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+                SET_PALETTE_COLOR_OBJ(8, i, gUnknown_080D7FF0[val][i]);
             }
         } else {
-            for (i = 0; i < 0x10; i++) {
-                gObjPalette[i + 0x80] = gUnknown_080D7FF0[1][i];
+            for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+                SET_PALETTE_COLOR_OBJ(8, i, gUnknown_080D7FF0[1][i]);
             }
         }
 
         if (boss->unk1F != 0) {
             boss->unk1F--;
-            for (i = 0; i < 0x10; i++) {
-                gObjPalette[i + 0x90] = gUnknown_080D7FF0[val][i];
+            for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+                SET_PALETTE_COLOR_OBJ(9, i, gUnknown_080D7FF0[val][i]);
             }
         } else {
-            for (i = 0; i < 0x10; i++) {
-                gObjPalette[i + 0x90] = gUnknown_080D7FF0[1][i];
+            for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+                SET_PALETTE_COLOR_OBJ(9, i, gUnknown_080D7FF0[1][i]);
             }
         }
 
-        gFlags |= 2;
+        gFlags |= FLAGS_UPDATE_SPRITE_PALETTES;
     }
 }
 

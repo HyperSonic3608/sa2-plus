@@ -65,7 +65,7 @@ void CreateEntity_Booster(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, u
     booster->base.regionX = spriteRegionX;
     booster->base.regionY = spriteRegionY;
     booster->base.me = me;
-    booster->base.spriteX = me->x;
+    booster->base.meX = me->x;
     booster->base.id = spriteY;
 
     s->x = TO_WORLD_POS(me->x, spriteRegionX);
@@ -108,7 +108,7 @@ void Task_Interactable_Booster(void)
 
     s16 screenX, screenY;
 
-    screenX = TO_WORLD_POS(booster->base.spriteX, booster->base.regionX);
+    screenX = TO_WORLD_POS(booster->base.meX, booster->base.regionX);
     screenY = TO_WORLD_POS(me->y, booster->base.regionY);
     s->x = screenX - gCamera.x;
     s->y = screenY - gCamera.y;
@@ -117,7 +117,7 @@ void Task_Interactable_Booster(void)
         && (Coll_Player_Entity_HitboxN(s, screenX, screenY, 0, &gPlayer, 0) == 1)) {
         Player_TransitionCancelFlyingAndBoost(&gPlayer);
 
-        if (gPlayer.moveState & MOVESTATE_4) {
+        if (gPlayer.moveState & MOVESTATE_SPIN_ATTACK) {
             PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 9);
         } else {
             PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
@@ -160,7 +160,7 @@ void Task_Interactable_Booster(void)
     }
 
     if (IS_OUT_OF_CAM_RANGE(s->x, s->y)) {
-        me->x = booster->base.spriteX;
+        me->x = booster->base.meX;
         TaskDestroy(gCurTask);
     } else {
         UpdateSpriteAnimation(s);

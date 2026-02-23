@@ -23,7 +23,7 @@ static void Task_InclineRamp(void)
     u32 moveState;
     s16 screenX, screenY;
 
-    screenX = TO_WORLD_POS(ramp->base.spriteX, ramp->base.regionY);
+    screenX = TO_WORLD_POS(ramp->base.meX, ramp->base.regionY);
 
     // @BUG - Same as inside initSprite func (regionX used instead of regionY)
     screenY = TO_WORLD_POS(me->y, ramp->base.regionX);
@@ -38,7 +38,7 @@ static void Task_InclineRamp(void)
                 moveState &= ~MOVESTATE_STOOD_ON_OBJ;
                 moveState |= MOVESTATE_IN_AIR;
                 moveState &= ~MOVESTATE_100;
-                moveState &= ~MOVESTATE_4;
+                moveState &= ~MOVESTATE_SPIN_ATTACK;
                 gPlayer.moveState = moveState;
 
                 PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
@@ -60,7 +60,7 @@ static void Task_InclineRamp(void)
                 moveState &= ~MOVESTATE_STOOD_ON_OBJ;
                 moveState |= MOVESTATE_IN_AIR;
                 moveState &= ~MOVESTATE_100;
-                moveState &= ~MOVESTATE_4;
+                moveState &= ~MOVESTATE_SPIN_ATTACK;
                 gPlayer.moveState = moveState;
 
                 PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
@@ -84,7 +84,7 @@ static void Task_InclineRamp(void)
     screenY -= gCamera.y;
 
     if (IS_OUT_OF_CAM_RANGE(screenX, screenY)) {
-        me->x = ramp->base.spriteX;
+        me->x = ramp->base.meX;
         TaskDestroy(gCurTask);
     }
 }
@@ -100,6 +100,6 @@ void CreateEntity_InclineRamp(MapEntity *me, u16 spriteRegionX, u16 spriteRegion
     ramp->base.me = me;
 
     ramp->base.id = me->d.uData[0];
-    ramp->base.spriteX = me->x;
+    ramp->base.meX = me->x;
     SET_MAP_ENTITY_INITIALIZED(me);
 }

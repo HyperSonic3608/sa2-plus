@@ -149,6 +149,9 @@ void Task_Item_Shield_Normal(void)
     if (!(gPlayer.itemEffect & PLAYER_ITEM_EFFECT__INVINCIBILITY)) {
         bool32 b;
         s32 screenX, screenY;
+#ifdef VIRTUAL_CONSOLE
+        u32 r0;
+#endif
 
         screenX = I(gPlayer.qWorldX) - cam->x;
         item->s.x = screenX + gPlayer.unk7C;
@@ -161,6 +164,10 @@ void Task_Item_Shield_Normal(void)
 
         UpdateSpriteAnimation(&item->s);
 
+#ifdef VIRTUAL_CONSOLE
+        r0 = Mod(gStageTime, 6);
+#endif
+
 #ifndef NON_MATCHING
         asm("mov %0, %2\n"
             "and %0, %1\n"
@@ -169,15 +176,44 @@ void Task_Item_Shield_Normal(void)
 
         // Make the compiler "forget" that itemEffect is 0x1
         asm("" : "=r"(itemEffect));
+#ifdef VIRTUAL_CONSOLE
+        {
+            register u32 r2 asm("r2") = 6;
+            r0 &= r2;
+        }
+#endif
 #else
         b = (param & 0x1);
+#ifdef VIRTUAL_CONSOLE
+        r0 &= 6;
 #endif
+#endif
+
+#ifdef VIRTUAL_CONSOLE
+        if ((!r0 && (b != itemEffect)) || (r0 && (b != 0))) {
+#else
         if (((gStageTime & 0x2) && (b != itemEffect)) || (!(gStageTime & 0x2) && (b != 0))) {
+#endif
             DisplaySprite(&item->s);
         }
     }
 }
 
+#ifndef NON_MATCHING
+// Looks like they may have manually edited the rom for the virtual console
+// so they needed to keep all functions aligned
+#ifdef VIRTUAL_CONSOLE
+asm(".byte 0x00, 0x00, 0x00, 0x00");
+#endif
+#endif
+
+// The virtual console version of this is probably manually edited
+// so much that it is not matchable with C, however the logic was
+// easy to replicate in C so it's documented below
+// https://decomp.me/scratch/LzKYd
+#if !defined(NON_MATCHING) && defined(VIRTUAL_CONSOLE) && defined(JAPAN)
+ASM_FUNC("asm/Task_Item_Shield_Magnetic__virtual_console.s", void Task_Item_Shield_Magnetic(void))
+#else
 void Task_Item_Shield_Magnetic(void)
 {
     s8 param = ITEMTASK_GET_PLAYER_NUM();
@@ -186,6 +222,9 @@ void Task_Item_Shield_Magnetic(void)
     struct Camera *cam = &gCamera;
 
     bool32 b;
+#ifdef VIRTUAL_CONSOLE
+    u32 m;
+#endif
 
     if (IS_SINGLE_PLAYER) {
         u32 itemEffect = (gPlayer.itemEffect & (PLAYER_ITEM_EFFECT__SHIELD_MAGNETIC | PLAYER_ITEM_EFFECT__INVINCIBILITY));
@@ -211,6 +250,10 @@ void Task_Item_Shield_Magnetic(void)
         }
     }
 
+#ifdef VIRTUAL_CONSOLE
+    m = Mod(gStageTime, 6);
+#endif
+
     UpdateSpriteAnimation(&item->s);
 
     b = (param);
@@ -221,14 +264,18 @@ void Task_Item_Shield_Magnetic(void)
         u32 one = 1;
 #endif
         b &= one;
+#ifdef VIRTUAL_CONSOLE
+        if ((!(m & 6) && (b != one)) || ((m & 6) && (b != 0))) {
+#else
         if (((gStageTime & 0x2) && (b != one)) || (!(gStageTime & 0x2) && (b != 0))) {
+#endif
             DisplaySprite(&item->s);
         }
     }
 }
+#endif
 
-// Unused?
-void Task_802ABC8(void)
+UNUSED void Task_802ABC8(void)
 {
     ItemTask *item = TASK_DATA(gCurTask);
     struct Camera *cam = &gCamera;

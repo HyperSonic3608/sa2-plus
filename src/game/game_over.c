@@ -40,6 +40,7 @@ void TaskDestructor_GameOverTimeOverScreen(struct Task *);
 void Task_TimeOverScreenMain(void);
 void sub_8036B70(void);
 void UpdateTimeOverScreenSprites(GameOverScreen *screen);
+void sub_8036B30(void);
 
 void CreateGameOverScreen(LostLifeCause lostLifeCause)
 {
@@ -77,7 +78,7 @@ void Task_FadeoutToOverScreen(void)
         gBldRegs.bldY = 16;
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         InitOverScreen(lostLifeCause);
 
@@ -221,8 +222,6 @@ void Task_GameOverScreenMain(void)
     DisplayOverScreenTextSprites(screen);
 }
 
-void sub_8036B30(void);
-
 void sub_80369D8(void)
 {
     GameOverScreen *screen = TASK_DATA(gCurTask);
@@ -283,7 +282,7 @@ void Task_TimeOverScreenMain(void)
     if (--screen->framesUntilDone == 0) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         gRingCount = 0;
 
@@ -318,7 +317,7 @@ void sub_8036B70(void)
     if (--screen->framesUntilDone == 0) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         CreateTitleScreen();
     } else {

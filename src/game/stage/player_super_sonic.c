@@ -325,7 +325,7 @@ static void Task_802BC10(void)
     if (sonic->shouldDestroy) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
 
         if ((gNumLives != 0) && (--gNumLives != 0)) {
@@ -430,8 +430,8 @@ static void sub_802BE1C(struct SuperSonic *sonic)
     prio = (sonic->flags & SUPER_FLAG__200) ? 3 : 0;
 
     if (sonic->flags & 0x4) {
-        spr->frameFlags = SPRITE_FLAG(PRIORITY, prio) | gUnknown_030054B8++ | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE
-            | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE;
+        spr->frameFlags
+            = SPRITE_FLAG(PRIORITY, prio) | gOamMatrixIndex++ | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE;
     } else {
         spr->frameFlags = SPRITE_FLAG(PRIORITY, prio) | SPRITE_FLAG_MASK_X_FLIP;
     }

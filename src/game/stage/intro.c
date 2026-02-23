@@ -5,7 +5,7 @@
 #include "game/sa1_sa2_shared/globals.h"
 #include "game/stage/player.h"
 #include "game/cheese.h"
-#include "game/stage/game_7.h"
+#include "game/stage/screen_mask.h"
 #include "game/bosses/common.h"
 #include "game/countdown.h"
 #include "game/boost_effect.h"
@@ -165,7 +165,7 @@ static const u8 sGettingReadyAnimationDuration[NUM_CHARACTERS]
     = { [CHARACTER_SONIC] = 40, [CHARACTER_CREAM] = 55, [CHARACTER_TAILS] = 52, [CHARACTER_KNUCKLES] = 40, [CHARACTER_AMY] = 40 };
 
 // Each byte represents one RGB channel (0-31)
-static const u8 gUnknown_080D6FF5[NUM_CHARACTERS + 1][16][3] = {
+static const u8 gUnknown_080D6FF5[NUM_CHARACTERS + 1][PALETTE_LEN_4BPP][3] = {
     {
         { 0x00, 0x17, 0x06 },
         { 0x16, 0x16, 0x16 },
@@ -295,12 +295,17 @@ typedef struct {
     /* 0x04 */ bool8 skippedIntro;
 } IntroController; /* size: 0x8 */
 
+typedef struct {
+    u16 y;
+    u16 angle;
+} ScreenMaskValues;
+
 // TODO: Are IntroBackgrounds/C/F the same struct?
 typedef struct {
     /* 0x00 */ IntroController *controller;
     /* 0x04 */ ScreenFade fade;
-    /* 0x10 */ Vec2_16 colorsPos1;
-    /* 0x14 */ Vec2_16 colorsPos2;
+    /* 0x10 */ ScreenMaskValues mask1;
+    /* 0x14 */ ScreenMaskValues mask2;
 } IntroBackgrounds; /* size: 0x18 */
 
 typedef struct {
@@ -340,7 +345,7 @@ struct Task *SetupStageIntro(void)
     IntroUI *introUI; // r8
     IntroActLetters *introActLetters;
     // SITaskF *sit_f;
-    Vec2_16 *vec;
+    ScreenMaskValues *mask;
     void *tilesCursor;
     Sprite *s;
     u8 i; // r7
@@ -384,13 +389,13 @@ struct Task *SetupStageIntro(void)
     introBackgrounds = TASK_DATA(t2);
     introBackgrounds->controller = introController;
 
-    vec = &introBackgrounds->colorsPos1;
-    vec->x = 0;
-    vec->y = 0;
+    mask = &introBackgrounds->mask1;
+    mask->y = 0;
+    mask->angle = 0;
 
-    vec = &introBackgrounds->colorsPos2;
-    vec->x = 0;
-    vec->y = 0;
+    mask = &introBackgrounds->mask2;
+    mask->y = 0;
+    mask->angle = 0;
 
     t2 = TaskCreate(Task_IntroZoneNameAndIconAnimations, sizeof(IntroUI), 0x2230, 0, TaskDestructor_803045C);
     introUI = TASK_DATA(t2);
@@ -519,7 +524,7 @@ struct Task *SetupStageIntro(void)
     s->animSpeed = SPRITE_ANIM_SPEED(1.0);
     s->palId = 0;
     s->hitboxes[0].index = -1;
-    s->frameFlags = (gUnknown_030054B8++ | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE);
+    s->frameFlags = (gOamMatrixIndex++ | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE);
     UpdateSpriteAnimation(s);
 
     /*    The icons of all unlocked zones in the upper-right    */
@@ -726,13 +731,13 @@ static void Task_802F9F8(void)
 
         if (IS_SINGLE_PLAYER) {
             // _0802FA4C+8
-            for (i = 0; i < 16; i++) {
+            for (i = 0; i < PALETTE_LEN_4BPP; i++) {
                 r = gUnknown_080D6FF5[gSelectedCharacter][i][0];
                 r = (r * frameCounter) / 16u;
                 g = ((gUnknown_080D6FF5[gSelectedCharacter][i][1] * frameCounter) / 16u);
                 b = ((gUnknown_080D6FF5[gSelectedCharacter][i][2] * frameCounter) / 16u);
 
-                gObjPalette[i] = RGB16_REV(r, g, b);
+                SET_PALETTE_COLOR_OBJ(0, i, RGB16_REV(r, g, b));
 
                 if (gCheese != NULL) {
                     r = gUnknown_080D6FF5[5][i][0];
@@ -740,7 +745,7 @@ static void Task_802F9F8(void)
                     g = ((gUnknown_080D6FF5[5][i][1] * frameCounter) / 16u);
                     b = ((gUnknown_080D6FF5[5][i][2] * frameCounter) / 16u);
 
-                    gObjPalette[14 * 16 + i] = RGB16_REV(r, g, b);
+                    SET_PALETTE_COLOR_OBJ(14, i, RGB16_REV(r, g, b));
                 }
             }
         } else {
@@ -749,25 +754,25 @@ static void Task_802F9F8(void)
 
             for (sid = 0; sid < MULTI_SIO_PLAYERS_MAX; sid++) {
                 if (GetBit(gMultiplayerConnections, sid)) {
-                    for (i = 0; i < 16; i++) {
+                    for (i = 0; i < PALETTE_LEN_4BPP; i++) {
                         r = gUnknown_080D6FF5[(gMultiplayerCharacters)[sid]][i][0];
                         r = (r * frameCounter) / 16u;
                         g = ((gUnknown_080D6FF5[(gMultiplayerCharacters)[sid]][i][1] * frameCounter) / 16u);
                         b = ((gUnknown_080D6FF5[(gMultiplayerCharacters)[sid]][i][2] * frameCounter) / 16u);
 
-                        gObjPalette[sid * 16 + i] = RGB16_REV(r, g, b);
+                        SET_PALETTE_COLOR_OBJ(sid, i, RGB16_REV(r, g, b));
                     }
                 }
             }
 
             if (gCheese != NULL) {
-                for (i = 0; i < 16; i++) {
+                for (i = 0; i < PALETTE_LEN_4BPP; i++) {
                     r = gUnknown_080D6FF5[5][i][0];
                     r = (r * frameCounter) / 16u;
                     g = ((gUnknown_080D6FF5[5][i][1] * frameCounter) / 16u);
                     b = ((gUnknown_080D6FF5[5][i][2] * frameCounter) / 16u);
 
-                    gObjPalette[14 * 16 + i] = RGB16_REV(r, g, b);
+                    SET_PALETTE_COLOR_OBJ(14, i, RGB16_REV(r, g, b));
                 }
             }
         }
@@ -834,45 +839,45 @@ static void Task_IntroColorAnimation(void)
     IntroBackgrounds *introBackgrounds = TASK_DATA(gCurTask);
 
     IntroController *controller = introBackgrounds->controller;
-    Vec2_16 *p0 = &introBackgrounds->colorsPos1;
-    Vec2_16 *p1 = &introBackgrounds->colorsPos2;
+    ScreenMaskValues *mask1 = &introBackgrounds->mask1;
+    ScreenMaskValues *mask2 = &introBackgrounds->mask2;
     u32 counter = controller->counter;
 
     if (counter > INTROFRAME_VISIBLE) {
         u32 innerCount = counter - INTROFRAME_VISIBLE;
 
-        p0->y = 0;
-        p0->x = 160;
-        p1->y = 512;
-        p1->x = 0;
+        mask1->angle = DEG_TO_SIN(0);
+        mask1->y = DISPLAY_HEIGHT;
+        mask2->angle = DEG_TO_SIN(180);
+        mask2->y = 0;
 
         if (innerCount < INTROFRAME_NAME_AND_BANNER) {
             /* Bottom left */
-            p0->y = -(innerCount * (DISPLAY_WIDTH / INTROFRAME_NAME_AND_BANNER)) + (DISPLAY_WIDTH + 16);
-            p0->x = (DISPLAY_HEIGHT / 2) + 8;
+            mask1->angle = -(innerCount * (DISPLAY_WIDTH / INTROFRAME_NAME_AND_BANNER)) + (DISPLAY_WIDTH + DEG_TO_SIN(5.625));
+            mask1->y = (DISPLAY_HEIGHT / 2) + 8;
 
             if (innerCount >= INTROFRAME_BANNER_APPEARS) {
                 /* Top Banner */
                 innerCount = counter - INTROFRAME_BANNER_APPEARS;
 
-                p1->y = 512;
-                p1->x = innerCount * 5;
+                mask2->angle = DEG_TO_SIN(180);
+                mask2->y = innerCount * 5;
             }
         } else if (counter < INTROFRAME_PAUSE_ON_BANNER) {
             /* Keep the Bottom-Left Triangle and Banner on-screen until 2 seconds have
              * passed (and stage name + all icons left the screen) */
-            p0->y = 542;
-            p0->x = DISPLAY_HEIGHT - 23;
-            p1->y = 512;
-            p1->x = 16;
+            mask1->angle = DEG_TO_SIN(190.546875);
+            mask1->y = DISPLAY_HEIGHT - 23;
+            mask2->angle = DEG_TO_SIN(180);
+            mask2->y = 16;
         } else if (counter < INTROFRAME_CLEAR_BANNER) {
             /* Clear the BL-Triangle and Banner */
             innerCount = counter - INTROFRAME_PAUSE_ON_BANNER;
 
-            p0->y = 542 - (innerCount * 18);
-            p0->x = -(innerCount * 2) + (DISPLAY_HEIGHT - 23);
-            p1->y = 512 - (innerCount * 16);
-            p1->x = counter - 104;
+            mask1->angle = DEG_TO_SIN(190.546875) - (innerCount * DEG_TO_SIN(6.328125));
+            mask1->y = -(innerCount * 2) + (DISPLAY_HEIGHT - 23);
+            mask2->angle = DEG_TO_SIN(180) - (innerCount * DEG_TO_SIN(5.625));
+            mask2->y = counter - 104;
         } else if (counter >= INTROFRAME_FADE_GAMEPLAY) {
             /* Clean up after the animation finished */
             gFlags &= ~FLAGS_EXECUTE_HBLANK_COPY;
@@ -884,14 +889,13 @@ static void Task_IntroColorAnimation(void)
             /* Transition to single Bottom-Right triangle (which is a sprite!) that
              * highlights the Act's name */
             innerCount = counter - INTROFRAME_CLEAR_BANNER;
-            p0->y = 544 - (innerCount * 6);
-            p0->x = innerCount * ((DISPLAY_HEIGHT - 62) / 14);
-            p1->y = 0;
-            // p1->x = 0;
+            mask1->angle = DEG_TO_SIN(191.25) - (innerCount * DEG_TO_SIN(2.109375));
+            mask1->y = innerCount * ((DISPLAY_HEIGHT - 62) / 14);
+            mask2->angle = 0;
         }
     }
 
-    gHBlankCopySize = 2 * sizeof(int_vcount);
+    gHBlankCopySize = sizeof(winreg_t);
     gHBlankCopyTarget = (void *)&REG_WIN0H;
 
     gFlags |= FLAGS_EXECUTE_HBLANK_COPY;
@@ -899,11 +903,12 @@ static void Task_IntroColorAnimation(void)
     InitHBlankBgOffsets(DISPLAY_WIDTH);
 
     if (counter > INTROFRAME_NAME_AND_BANNER) {
-        sub_802DDC4(p0->x, p0->y);
-        sub_802DF18(p1->x, p1->y);
+        ScreenMask_Lower_OriginRight(mask1->y, mask1->angle);
+        ScreenMask_Upper_OriginRight(mask2->y, mask2->angle);
+        // controller->counter = INTROFRAME_NAME_AND_BANNER;
     } else {
-        sub_802DBC0(p0->x, p0->y);
-        sub_802DF18(p1->x, p1->y);
+        ScreenMask_Lower_OriginLeft(mask1->y, mask1->angle);
+        ScreenMask_Upper_OriginRight(mask2->y, mask2->angle);
     }
 }
 
@@ -1126,7 +1131,7 @@ static void Task_IntroZoneNameAndIconAnimations(void)
     // _08030240
     /* Loading Wheel Icon */
     s = &introUI->sprLoadingWheelIcon;
-    s->frameFlags = (gUnknown_030054B8++ | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE);
+    s->frameFlags = (gOamMatrixIndex++ | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE);
     s->x = 35;
 
     if (counter <= 16) {
@@ -1229,7 +1234,7 @@ static void Task_UpdateStageLoadingScreen(void)
     IntroBackgrounds *introBackgrounds = TASK_DATA(gCurTask);
     u32 counter = introBackgrounds->controller->counter;
 
-    gBgPalette[0] = sZoneLoadingCharacterColors[gSelectedCharacter];
+    SET_PALETTE_COLOR_BG(0, 0, sZoneLoadingCharacterColors[gSelectedCharacter]);
 
     gFlags |= FLAGS_UPDATE_BACKGROUND_PALETTES;
 

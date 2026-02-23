@@ -18,9 +18,11 @@
 #include "game/stage/player.h"
 #include "game/stage/camera.h"
 #include "game/time_attack/lobby.h"
+#if (GAME == GAME_SA1)
+#include "game/time_over.h"
+#endif
 #include "game/multiplayer/finish.h"
 #include "game/multiplayer/indicators.h"
-
 #include "game/multiboot/collect_rings/time_display.h"
 #include "game/multiplayer/mp_player.h"
 
@@ -40,7 +42,6 @@ struct Task *gGameStageTask = NULL;
 void Task_GameStage(void);
 
 void TaskDestructor_GameStage(struct Task *);
-void sub_801F044(void);
 
 void CreatePlayer(u32, u32, Player *);
 void CreateBossRunManager(u8);
@@ -127,7 +128,7 @@ extern const u8 CollFlags_zone_1_act_1_fg[];
 void ApplyGameStageSettings(void)
 {
     gLevelScore = 0;
-    gUnknown_030054B0 = 0;
+    gFinalBossActive = FALSE;
     gNumLives = 3;
 
     if (IS_MULTI_PLAYER) {
@@ -188,17 +189,17 @@ void CreateGameStage(void)
     gGameStageTask = TaskCreate(Task_GameStage, 0, 0xff00, 0, TaskDestructor_GameStage);
     gActiveCollectRingEffectCount = 0;
     gSpecialRingCount = 0;
-    gUnknown_030054B0 = 0;
+    gFinalBossActive = FALSE;
 
     gStageFlags |= (STAGE_FLAG__DISABLE_PAUSE_MENU | STAGE_FLAG__ACT_START);
     gStageFlags &= ~STAGE_FLAG__GRAVITY_INVERTED;
 
     gBossRingsShallRespawn = FALSE;
     gBossRingsRespawnCount = BOSS_RINGS_DEFAULT_RESPAWN_COUNT;
-    gUnknown_030055BC = 0;
+    gBoostEffectTasksCreated = 0;
 
     sub_801F044();
-    gUnknown_030053E0 = 0;
+    gSpikesUnknownTimer = 0;
 
     if (!IS_EXTRA_STAGE(gCurrentLevel)) {
         CreatePlayer(gSelectedCharacter, gCurrentLevel, &gPlayer);
@@ -252,14 +253,14 @@ void CreateGameStage(void)
     CreateStageRingsManager();
     CreateStageEntitiesManager();
 
-    gUnknown_03001944 = 0;
-    gUnknown_030017F0 = 0x100;
-    gUnknown_03005394 = 0x100;
-    gUnknown_03002A8C = 0x78;
-    gUnknown_03004D58 = 0x50;
-    gUnknown_0300194C = 0x78;
-    gUnknown_03002820 = 0x50;
-    gUnknown_03005398 = 0x80;
+    SA2_LABEL(gUnknown_03001944) = 0;
+    SA2_LABEL(gUnknown_030017F0) = 0x100;
+    SA2_LABEL(gUnknown_03005394) = 0x100;
+    SA2_LABEL(gUnknown_03002A8C) = 0x78;
+    SA2_LABEL(gUnknown_03004D58) = 0x50;
+    SA2_LABEL(gUnknown_0300194C) = 0x78;
+    SA2_LABEL(gUnknown_03002820) = 0x50;
+    SA2_LABEL(gUnknown_03005398) = 0x80;
 
     if (IS_MULTI_PLAYER) {
         CreateMultiplayerReceiveEventMgr();
@@ -279,7 +280,7 @@ void CreateGameStage(void)
                 }
             }
 
-            gUnknown_030054B4[i] = -1;
+            gMultiplayerRanks[i] = -1;
             if (gGameMode == GAME_MODE_MULTI_PLAYER_COLLECT_RINGS) {
                 gMultiplayerCharacters[i] = i;
             }
@@ -292,7 +293,7 @@ void CreateGameStage(void)
 #ifndef COLLECT_RINGS_ROM
     else {
         for (i = 0; i < 4; i++) {
-            gUnknown_030054B4[i] = -1;
+            gMultiplayerRanks[i] = -1;
         }
     }
 
@@ -314,6 +315,20 @@ void Task_GameStage(void)
     u32 timeStep;
 #ifndef COLLECT_RINGS_ROM
     if (IS_SINGLE_PLAYER) {
+#if DEBUG
+#include "game/character_select.h"
+        if (gInput & SELECT_BUTTON) {
+            const u32 initialCharacter = CHARACTER_TAILS;
+            const bool32 allUnlocked = TRUE;
+            TasksDestroyAll();
+#if (GAME == GAME_SA1)
+            CreateCharacterSelectionScreen(initialCharacter);
+#elif (GAME == GAME_SA2)
+            CreateCharacterSelectionScreen(initialCharacter, allUnlocked);
+#endif
+            return;
+        }
+#endif
         if (!(gStageFlags & STAGE_FLAG__DISABLE_PAUSE_MENU) && (gPressedKeys & START_BUTTON) && !(gStageFlags & STAGE_FLAG__DEMO_RUNNING)) {
             CreatePauseMenu();
         }
@@ -344,12 +359,7 @@ void Task_GameStage(void)
             u32 temp = MultiplayerPseudoRandom32();
         }
 
-#if (GAME == GAME_SA1)
-        if (gCamera.sa2__unk50 & CAM_MODE_SPECTATOR)
-#elif (GAME == GAME_SA2)
-        if (gCamera.unk50 & CAM_MODE_SPECTATOR)
-#endif
-        {
+        if (gCamera.SA2_LABEL(unk50) & CAM_MODE_SPECTATOR) {
 
             if ((gInput & (L_BUTTON | R_BUTTON)) == (L_BUTTON | R_BUTTON)) {
                 if (sioId != 3) {
@@ -381,22 +391,12 @@ void Task_GameStage(void)
             gCamera.spectatorTarget = sioId;
         }
 
-#if (GAME == GAME_SA1)
-        if (sa2__gUnknown_030053E0 > 0) {
-            sa2__gUnknown_030053E0--;
+        if (SA2_LABEL(gSpikesUnknownTimer) > 0) {
+            SA2_LABEL(gSpikesUnknownTimer)--;
         }
-#elif (GAME == GAME_SA2)
-        if (gUnknown_030053E0 > 0) {
-            gUnknown_030053E0--;
-        }
-#endif
     }
 
-#if (GAME == GAME_SA1)
-    sa2__gUnknown_0300544C = gStageFlags;
-#elif (GAME == GAME_SA2)
-    gUnknown_0300544C = gStageFlags;
-#endif
+    SA2_LABEL(gPrevStageFlags) = gStageFlags;
 
     if (gStageFlags & STAGE_FLAG__ACT_START) {
         return;
@@ -414,15 +414,9 @@ void Task_GameStage(void)
         if (IS_SINGLE_PLAYER) {
             gStageFlags |= STAGE_FLAG__ACT_START;
 
-#if (GAME == GAME_SA1)
-            if (gLoadedSaveGame.timeLimitDisabled) {
+            if (LOADED_SAVE->timeLimitDisabled) {
                 return;
             }
-#elif (GAME == GAME_SA2)
-            if (gLoadedSaveGame->timeLimitDisabled) {
-                return;
-            }
-#endif
 
             gPlayer.itemEffect = 0;
 
@@ -435,6 +429,8 @@ void Task_GameStage(void)
 #if (GAME == GAME_SA1)
             if (gCurrentLevel == LEVEL_INDEX(ZONE_6, ACT_1))
 #elif (GAME == GAME_SA2)
+            // NOTE(Jace):
+            // I wonder if the level index was hardcoded in the original source?
             if (gCurrentLevel == LEVEL_INDEX(ZONE_3, ACT_BOSS))
 #endif
             {
@@ -446,11 +442,7 @@ void Task_GameStage(void)
 #endif
         else {
             gStageFlags |= STAGE_FLAG__ACT_START;
-#if (GAME == GAME_SA1)
-            sa2__CreateMultiplayerFinishHandler();
-#elif (GAME == GAME_SA2)
             CreateMultiplayerFinishHandler();
-#endif
         }
     }
 #ifndef COLLECT_RINGS_ROM
@@ -463,15 +455,9 @@ void Task_GameStage(void)
         if (IS_SINGLE_PLAYER) {
             gStageFlags |= STAGE_FLAG__ACT_START;
 
-#if (GAME == GAME_SA1)
-            if (gLoadedSaveGame.timeLimitDisabled && (gGameMode == GAME_MODE_SINGLE_PLAYER || IS_MULTI_PLAYER)) {
+            if (LOADED_SAVE->timeLimitDisabled && (gGameMode == GAME_MODE_SINGLE_PLAYER || IS_MULTI_PLAYER)) {
                 return;
             }
-#elif (GAME == GAME_SA2)
-            if (gLoadedSaveGame->timeLimitDisabled && (gGameMode == GAME_MODE_SINGLE_PLAYER || IS_MULTI_PLAYER)) {
-                return;
-            }
-#endif
 
             gPlayer.itemEffect = 0;
 
@@ -484,11 +470,7 @@ void Task_GameStage(void)
             m4aSongNumStart(SE_TIME_UP);
         } else {
             gStageFlags |= STAGE_FLAG__ACT_START;
-#if (GAME == GAME_SA1)
-            sa2__CreateMultiplayerFinishHandler();
-#elif (GAME == GAME_SA2)
             CreateMultiplayerFinishHandler();
-#endif
         }
     }
 #endif
@@ -498,7 +480,7 @@ void Task_GameStage(void)
 void ApplyGameStageSettings(void)
 {
     gLevelScore = 0;
-    gUnknown_030054B0 = 0;
+    gFinalBossActive = FALSE;
     gNumLives = 3;
 
     if (IS_MULTI_PLAYER) {
@@ -544,7 +526,7 @@ void HandleLifeLost(void)
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
 
-        SA2_LABEL(gUnknown_03005390) = 0;
+        SA2_LABEL(gBgSpritesCount) = 0;
 
         PAUSE_GRAPHICS_QUEUE();
         CreateTimeAttackLobbyScreen();
@@ -575,7 +557,7 @@ void HandleLifeLost(void)
             TasksDestroyAll();
             PAUSE_BACKGROUNDS_QUEUE();
 
-            SA2_LABEL(gUnknown_03005390) = 0;
+            SA2_LABEL(gBgSpritesCount) = 0;
 
             PAUSE_GRAPHICS_QUEUE();
             CreateGameStage();
@@ -741,7 +723,7 @@ void HandleDeath(void)
     if (gGameMode == GAME_MODE_TIME_ATTACK || gGameMode == GAME_MODE_BOSS_TIME_ATTACK) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         CreateTimeAttackLobbyScreen();
         gNumLives = 2;
@@ -763,7 +745,7 @@ void GoToNextLevel(void)
 
     TasksDestroyAll();
     PAUSE_BACKGROUNDS_QUEUE();
-    SA2_LABEL(gUnknown_03005390) = 0;
+    SA2_LABEL(gBgSpritesCount) = 0;
     PAUSE_GRAPHICS_QUEUE();
 
 #if (GAME == GAME_SA1)
@@ -828,7 +810,7 @@ void TaskDestructor_GameStage(struct Task *t)
 #if (GAME == GAME_SA1)
     if ((gGameMode == GAME_MODE_TIME_ATTACK || (gGameMode == GAME_MODE_RACE) || (gGameMode == GAME_MODE_MULTI_PLAYER))
         || (gStageFlags & STAGE_FLAG__DEMO_RUNNING)) {
-        gLoadedSaveGame.difficultyLevel = gDifficultyLevel;
+        LOADED_SAVE->difficultyLevel = gDifficultyLevel;
     }
 #endif
     gGameStageTask = NULL;

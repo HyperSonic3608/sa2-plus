@@ -19,9 +19,11 @@
 #if !PLATFORM_GBA
 #ifdef _WIN32
 void *Platform_malloc(size_t numBytes);
+void *Platform_realloc(void *ptr, size_t numBytes);
 void Platform_free(void *ptr);
 #define malloc(numBytes)    Platform_malloc(numBytes)
 #define calloc(count, size) Platform_malloc(count *size)
+#define realloc(ptr, size)  Platform_realloc(ptr, size)
 #define free(numBytes)      Platform_free(numBytes)
 #endif
 #endif
@@ -331,10 +333,8 @@ typedef struct {
 } BgAffineReg;
 
 // TODO: Find better place for this
-typedef void (*HBlankFunc)(int_vcount vcount);
+typedef void (*HBlankIntrFunc)(int_vcount vcount);
 typedef void (*IntrFunc)(void);
-typedef void (*FuncType_030053A0)(void);
-typedef bool32 (*VBlankFunc)(void);
 
 extern void *iwram_end;
 extern void *ewram_end;

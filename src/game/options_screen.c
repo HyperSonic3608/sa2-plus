@@ -669,7 +669,11 @@ const struct UNK_080D95E8 sDifficultyMenuTitleText[NUM_LANGUAGES] = {
 const struct UNK_080D95E8 sDifficultyMenuControlsText[NUM_LANGUAGES] = {
     [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 958, .unk2 = 0, .unk4 = 28 },
     [LanguageIndex(LANG_ENGLISH)] = { .unk0 = 1010, .unk2 = 0, .unk4 = 22 },
+#ifdef JAPAN
+    [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 39 },
+#else
     [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 26 },
+#endif
     [LanguageIndex(LANG_FRENCH)] = { .unk0 = 1012, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_SPANISH)] = { .unk0 = 1013, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_ITALIAN)] = { .unk0 = 1014, .unk2 = 0, .unk4 = 28 },
@@ -686,7 +690,11 @@ const struct UNK_080D95E8 sTimeLimitMenuTitleText[NUM_LANGUAGES] = {
 const struct UNK_080D95E8 sTimeLimitMenuControlsText[NUM_LANGUAGES] = {
     [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 958, .unk2 = 0, .unk4 = 28 },
     [LanguageIndex(LANG_ENGLISH)] = { .unk0 = 1010, .unk2 = 0, .unk4 = 22 },
+#ifdef JAPAN
+    [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 39 },
+#else
     [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 26 },
+#endif
     [LanguageIndex(LANG_FRENCH)] = { .unk0 = 1012, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_SPANISH)] = { .unk0 = 1013, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_ITALIAN)] = { .unk0 = 1014, .unk2 = 0, .unk4 = 28 },
@@ -705,13 +713,21 @@ const struct UNK_080D95E8 sButtonConfigTitleAndControlsText[NUM_LANGUAGES][3] = 
     },
     [LanguageIndex(LANG_GERMAN)] = { 
         { .unk0 = 981, .unk2 = 3, .unk4 = 38 },
+#ifdef JAPAN
+        { .unk0 = 1011, .unk2 = 0, .unk4 = 39 },
+#else
         { .unk0 = 1011, .unk2 = 0, .unk4 = 26 },
+#endif
         { .unk0 = 981, .unk2 = 4, .unk4 = 17 },
     },
     [LanguageIndex(LANG_FRENCH)] = { 
         { .unk0 = 982, .unk2 = 3, .unk4 = 44 },
         { .unk0 = 1012, .unk2 = 0, .unk4 = 26 },
+#ifdef JAPAN
+        { .unk0 = 982, .unk2 = 4, .unk4 = 23 },
+#else
         { .unk0 = 982, .unk2 = 4, .unk4 = 17 },
+#endif
     },
     [LanguageIndex(LANG_SPANISH)] = { 
         { .unk0 = 983, .unk2 = 3, .unk4 = 40 },
@@ -773,13 +789,21 @@ const struct UNK_080D95E8 sLanguageScreenTitles[NUM_LANGUAGES] = {
 const struct UNK_080D95E8 sLanguageScreenEditControlsText[NUM_LANGUAGES] = {
     [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 958, .unk2 = 0, .unk4 = 28 },
     [LanguageIndex(LANG_ENGLISH)] = { .unk0 = 1010, .unk2 = 0, .unk4 = 22 },
+#ifdef JAPAN
+    [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 39 },
+#else
     [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 26 },
+#endif
     [LanguageIndex(LANG_FRENCH)] = { .unk0 = 1012, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_SPANISH)] = { .unk0 = 1013, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_ITALIAN)] = { .unk0 = 1014, .unk2 = 0, .unk4 = 28 },
 };
 const struct UNK_080D95E8 sLanguageScreenNewControlsText[NUM_LANGUAGES] = {
+#ifdef JAPAN
+    [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 953, .unk2 = 13, .unk4 = 28 },
+#else
     [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 953, .unk2 = 13, .unk4 = 26 },
+#endif
     [LanguageIndex(LANG_ENGLISH)] = { .unk0 = 995, .unk2 = 1, .unk4 = 20 },
     [LanguageIndex(LANG_GERMAN)] = { .unk0 = 995, .unk2 = 1, .unk4 = 20 },
     [LanguageIndex(LANG_FRENCH)] = { .unk0 = 995, .unk2 = 1, .unk4 = 20 },
@@ -814,7 +838,11 @@ const struct UNK_080D95E8 sDeleteScreenAbsoluteConfirmTitleText[NUM_LANGUAGES] =
 const struct UNK_080D95E8 sDeleteScreenControlsText[NUM_LANGUAGES] = {
     [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 958, .unk2 = 0, .unk4 = 28 },
     [LanguageIndex(LANG_ENGLISH)] = { .unk0 = 1010, .unk2 = 0, .unk4 = 22 },
+#ifdef JAPAN
+    [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 39 },
+#else
     [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 26 },
+#endif
     [LanguageIndex(LANG_FRENCH)] = { .unk0 = 1012, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_SPANISH)] = { .unk0 = 1013, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_ITALIAN)] = { .unk0 = 1014, .unk2 = 0, .unk4 = 28 },
@@ -857,7 +885,11 @@ const struct UNK_080D95E8 sPlayerDataMenuTitleText[NUM_LANGUAGES] = {
 const struct UNK_080D95E8 sPlayerDataMenuControlsText[NUM_LANGUAGES] = {
     [LanguageIndex(LANG_JAPANESE)] = { .unk0 = 958, .unk2 = 0, .unk4 = 28 },
     [LanguageIndex(LANG_ENGLISH)] = { .unk0 = 1010, .unk2 = 0, .unk4 = 22 },
+#ifdef JAPAN
+    [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 39 },
+#else
     [LanguageIndex(LANG_GERMAN)] = { .unk0 = 1011, .unk2 = 0, .unk4 = 26 },
+#endif
     [LanguageIndex(LANG_FRENCH)] = { .unk0 = 1012, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_SPANISH)] = { .unk0 = 1013, .unk2 = 0, .unk4 = 26 },
     [LanguageIndex(LANG_ITALIAN)] = { .unk0 = 1014, .unk2 = 0, .unk4 = 28 },
@@ -1196,7 +1228,11 @@ void CreateTimeAttackLevelSelectScreen(bool16 isBossView, s16 selectedCharacter,
     timeRecordsScreen->view = TIME_RECORDS_SCREEN_VIEW_TIME_ATTACK;
 
     if (timeRecordsScreen->language > NUM_LANGUAGES - 1) {
+#ifdef JAPAN
+        timeRecordsScreen->language = LanguageIndex(LANG_JAPANESE);
+#else
         timeRecordsScreen->language = LanguageIndex(LANG_ENGLISH);
+#endif
     }
 
     memcpy(timeRecordsScreen->timeRecords, &gLoadedSaveGame->timeRecords, sizeof(struct TimeRecords));
@@ -1224,7 +1260,11 @@ void CreateNewProfileScreen(void)
     languageScreen->creatingNewProfile = TRUE;
 
     if ((u8)languageScreen->menuCursor >= NUM_LANGUAGES) {
+#ifdef JAPAN
+        languageScreen->menuCursor = LanguageIndex(LANG_JAPANESE);
+#else
         languageScreen->menuCursor = LanguageIndex(LANG_ENGLISH);
+#endif
     }
 
     ResetProfileScreensVram();
@@ -1258,7 +1298,11 @@ void CreateNewProfileNameScreen(s16 mode)
     }
 
     if (profileNameScreen->language > NUM_LANGUAGES - 1) {
+#ifdef JAPAN
+        profileNameScreen->language = LanguageIndex(LANG_JAPANESE);
+#else
         profileNameScreen->language = LanguageIndex(LANG_ENGLISH);
+#endif
     }
 
     for (i = 0; i < MAX_PLAYER_NAME_LENGTH; i++) {
@@ -1318,7 +1362,11 @@ static void ReadProfileData(struct OptionsScreen *optionsScreen)
     }
 
     if (optionsScreen->language > NUM_LANGUAGES - 1) {
+#ifdef JAPAN
+        optionsScreen->language = LanguageIndex(LANG_JAPANESE);
+#else
         optionsScreen->language = LanguageIndex(LANG_ENGLISH);
+#endif
     }
 
     if (optionsScreen->soundTestUnlocked > 1) {
@@ -3696,7 +3744,7 @@ static void ProfileNameScreenFadeOutAndExit(void)
     WriteSaveGame();
     TasksDestroyAll();
     PAUSE_BACKGROUNDS_QUEUE();
-    gUnknown_03005390 = 0;
+    gBgSpritesCount = 0;
     PAUSE_GRAPHICS_QUEUE();
 
     if (onCompleteAction == NAME_SCREEN_COMPLETE_ACTION_MULTIPLAYER) {
@@ -4007,19 +4055,11 @@ static void TimeRecordsScreenInitRegisters(void)
     gBgScrollRegs[3][0] = 0;
     gBgScrollRegs[3][1] = 0;
 
-    gUnknown_03004D80[1] = 0;
-    gUnknown_03002280[1][0] = 0;
-    gUnknown_03002280[1][1] = 0;
-    gUnknown_03002280[1][2] = 0xFF;
-    gUnknown_03002280[1][3] = 64;
+    INIT_BG_SPRITES_LAYER_64(1);
 
     DmaFill32(3, 0, (void *)BG_CHAR_ADDR(1), sizeof(Background));
 
-    gUnknown_03004D80[2] = 0;
-    gUnknown_03002280[2][0] = 0;
-    gUnknown_03002280[2][1] = 0;
-    gUnknown_03002280[2][2] = 0xFF;
-    gUnknown_03002280[2][3] = 64;
+    INIT_BG_SPRITES_LAYER_64(2);
 
     DmaFill32(3, 0, (void *)BG_CHAR_ADDR(2), sizeof(Background));
 }
@@ -4638,7 +4678,7 @@ static void Task_TimeRecordsScreenFadeToPrevious(void)
             EwramFree(timeRecordsScreen->timeRecords);
             TasksDestroyAll();
             PAUSE_BACKGROUNDS_QUEUE();
-            gUnknown_03005390 = 0;
+            gBgSpritesCount = 0;
             PAUSE_GRAPHICS_QUEUE();
             CreateCharacterSelectionScreen(timeRecordsScreen->character, allCharactersUnlocked);
             break;
@@ -5561,7 +5601,7 @@ static void Task_OptionsScreenFadeOutAndExit(void)
     WriteSaveGame();
     TasksDestroyAll();
     PAUSE_BACKGROUNDS_QUEUE();
-    gUnknown_03005390 = 0;
+    gBgSpritesCount = 0;
     PAUSE_GRAPHICS_QUEUE();
     CreateTitleScreenAtSinglePlayerMenu();
 }

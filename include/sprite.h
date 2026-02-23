@@ -32,6 +32,37 @@ struct GraphicsData {
 #define BACKGROUND_UPDATE_ANIMATIONS      0x200
 #define BACKGROUND_FLAG_400               0x400
 #define BACKGROUND_FLAG_800               0x800
+
+// TODO: potentially rename these. For now, all we know is
+// that they are used in the same functions which handles
+// bg sprites
+#define INIT_BG_SPRITES_LAYER_32(index)                                                                                                    \
+    ({                                                                                                                                     \
+        gBgSprites_Unknown1[(index)] = 0;                                                                                                  \
+        gBgSprites_Unknown2[(index)][0] = 0;                                                                                               \
+        gBgSprites_Unknown2[(index)][1] = 0;                                                                                               \
+        gBgSprites_Unknown2[(index)][2] = 255;                                                                                             \
+        gBgSprites_Unknown2[(index)][3] = 32;                                                                                              \
+    });
+
+#define INIT_BG_SPRITES_LAYER_64(index)                                                                                                    \
+    ({                                                                                                                                     \
+        gBgSprites_Unknown1[(index)] = 0;                                                                                                  \
+        gBgSprites_Unknown2[(index)][0] = 0;                                                                                               \
+        gBgSprites_Unknown2[(index)][1] = 0;                                                                                               \
+        gBgSprites_Unknown2[(index)][2] = 255;                                                                                             \
+        gBgSprites_Unknown2[(index)][3] = 64;                                                                                              \
+    })
+
+#define INIT_BG_SPRITES_LAYER_128(index)                                                                                                   \
+    ({                                                                                                                                     \
+        gBgSprites_Unknown1[(index)] = 0;                                                                                                  \
+        gBgSprites_Unknown2[(index)][0] = 0;                                                                                               \
+        gBgSprites_Unknown2[(index)][1] = 0;                                                                                               \
+        gBgSprites_Unknown2[(index)][2] = 255;                                                                                             \
+        gBgSprites_Unknown2[(index)][3] = 128;                                                                                             \
+    })
+
 typedef struct {
     /* 0x00 */ struct GraphicsData graphics;
 
@@ -87,7 +118,7 @@ typedef struct {
     /* 0x36 */ u16 prevScrollY;
 
     /* Only used by stage maps (they are encoded as Tilemaps) */
-    /* 0x38 */ const u16 *metatileMap;
+    /* 0x38 */ const MetatileIndexType *metatileMap;
     /* 0x3C */ u16 mapWidth;
     /* 0x3E */ u16 mapHeight;
 } Background; /* size = 0x40 */
@@ -248,10 +279,10 @@ AnimCmdResult UpdateSpriteAnimation(Sprite *);
 
 void DisplaySprite(Sprite *);
 void DrawBackground(Background *);
-bool32 sub_8002B20(void);
-bool32 sub_80039E4(void);
-bool32 sub_8004010(void);
-void CopyOamBufferToOam(void);
+bool32 SA2_LABEL(sub_8002B20)(void);
+bool32 SA2_LABEL(sub_80039E4)(void);
+bool32 SA2_LABEL(sub_8004010)(void);
+void ProcessOamBuffers(void);
 OamData *OamMalloc(u8 order);
 
 void TransformSprite(Sprite *, SpriteTransform *);
@@ -262,8 +293,8 @@ void sub_8003EE4(u16 p0, s16 p1, s16 p2, s16 p3, s16 p4, s16 p5, s16 p6, BgAffin
 void sub_8006228(u8 p0, u8 p1, u8 p2, u8 p3, u8 p4, u8 p5);
 void sub_80064A8(u8 p0, u8 p1, u8 p2, u8 p3, u8 p4, u8 p5);
 
-s32 sub_80036E0(Sprite *);
-void sub_8003914(Sprite *);
+s32 UpdateSpriteAnimation_BG(Sprite *);
+void DisplaySprite_BG(Sprite *);
 void sub_80047A0(u16, s16, s16, u16);
 
 s16 sub_8004418(s16 x, s16 y);
@@ -372,7 +403,7 @@ void numToASCII(u8 digits[5], u16 number);
 #define SPRITE_FLAG_MASK_PRIORITY  SPRITE_FLAG(PRIORITY, 3) // 0x3000
 #define SPRITE_FLAG_MASK_ANIM_OVER SPRITE_FLAG(ANIM_OVER, 1)
 #define SPRITE_FLAG_MASK_BG_ID     SPRITE_FLAG(BG_ID, 3)
-#define SPRITE_FLAG_MASK_17        SPRITE_FLAG(17, 1)
+#define SPRITE_FLAG_GLOBAL_OFFSET  SPRITE_FLAG(17, 1)
 #define SPRITE_FLAG_MASK_18        SPRITE_FLAG(18, 1) // 0x40000
 #define SPRITE_FLAG_MASK_19        SPRITE_FLAG(19, 1)
 #define SPRITE_FLAG_MASK_26        SPRITE_FLAG(26, 1)

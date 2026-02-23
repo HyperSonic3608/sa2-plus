@@ -21,7 +21,7 @@
 #include "game/stage/player.h"
 #include "game/stage/results.h"
 #include "game/stage/boss_results_transition.h"
-#include "game/stage/game_7.h"
+#include "game/stage/screen_mask.h"
 #include "game/stage/screen_fade.h"
 #include "game/stage/screen_shake.h"
 
@@ -173,7 +173,7 @@ const u16 gUnknown_080D8888[2][2] = { { Q(188), Q(110) }, { Q(162), Q(110) } };
 static const EggRoboFn sArmFuncs[8]
     = { sub_804B43C, sub_804B594, sub_804B734, sub_804B984, sub_804BC44, sub_804BE6C, sub_804BAC0, sub_804C240 };
 
-const u16 sArmPalettes[2][16] = {
+const u16 sArmPalettes[2][PALETTE_LEN_4BPP] = {
     INCBIN_U16("graphics/boss_8_a.gbapal"),
     INCBIN_U16("graphics/boss_8_b.gbapal"),
 };
@@ -297,7 +297,7 @@ static void Task_BossRunManagerMain(void)
                             r6 = Q(r4);
                             r0 = r5 + r6;
                             gPlayer.qWorldX = r0;
-                            gUnknown_030054FC = r6;
+                            gWorldSpeedX = r6;
                             sub_8039F50(r6, manager->bossIndex);
                             gBossRingsShallRespawn = 1;
                             gCamera.x += r4;
@@ -324,7 +324,7 @@ static void Task_BossRunManagerMain(void)
                 r4 = gUnknown_080D8808[manager->bossIndex][1];
                 r5 = Q(r4);
                 gPlayer.qWorldX += r5;
-                gUnknown_030054FC = r5;
+                gWorldSpeedX = r5;
                 sub_8039F50(r5, manager->bossIndex);
                 gBossRingsShallRespawn = 1;
                 gCamera.x += r4;
@@ -343,7 +343,7 @@ static void Task_BossRunManagerMain(void)
                 gCamera.unkC = 1;
                 gCamera.unk8 = 1280;
             }
-            gUnknown_030054B0 = 1;
+            gFinalBossActive = TRUE;
         } else {
             manager->unk5++;
         }
@@ -724,11 +724,7 @@ void CreateSuperEggRoboZ(void)
     gBgCntRegs[2] = (BGCNT_TXT256x256 | BGCNT_SCREENBASE(31) | BGCNT_CHARBASE(0) | BGCNT_PRIORITY(1));
     gBgScrollRegs[0][0] = 0;
     gBgScrollRegs[0][1] = 0;
-    gUnknown_03004D80[0] = 0;
-    gUnknown_03002280[0][0] = 0;
-    gUnknown_03002280[0][1] = 0;
-    gUnknown_03002280[0][2] = 0xFF;
-    gUnknown_03002280[0][3] = 0x40;
+    INIT_BG_SPRITES_LAYER_64(0);
     gPlayer.moveState |= MOVESTATE_IGNORE_INPUT;
     sub_8039ED4();
     gPseudoRandom = gStageTime;
@@ -1173,11 +1169,11 @@ void sub_804AE40(SuperEggRoboZ *boss)
                         "str r1, [sp, #4]\n\t"
                         "add r1, %2, #0\n\t"
                         "mov r2, #6\n\t"
-                        "bl sub_802E784"
+                        "bl ScreenMask_CreateShape"
                         :
                         : "r"(r8), "r"(r6), "r"(r4), "r"(boss));
 #else
-                    sub_802E784(boss->unk10, r4, 6, r8, r6 + 1, 32);
+                    ScreenMask_CreateShape(boss->unk10, r4, 6, r8, r6 + 1, 32);
 #endif
 
                     boss->fade.brightness = Q(32) - (boss->unk12 * 91);
@@ -1769,7 +1765,7 @@ static void sub_804C3AC(SuperEggRoboZ *boss)
     s->y = I(sp00.y) - gCamera.y;
 
     s->frameFlags
-        = (gUnknown_030054B8++ | (SPRITE_FLAG(PRIORITY, 3) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
+        = (gOamMatrixIndex++ | (SPRITE_FLAG(PRIORITY, 3) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
 
     tf->rotation = boss->unk10;
     tf->qScaleX = Q(1);
@@ -1791,8 +1787,8 @@ static void sub_804C3AC(SuperEggRoboZ *boss)
         s->x = I(sp00.x) - gCamera.x;
         s->y = I(sp00.y) - gCamera.y;
 
-        s->frameFlags = (gUnknown_030054B8++
-                         | (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
+        s->frameFlags
+            = (gOamMatrixIndex++ | (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
 
         tf->rotation = boss->rotation[i];
         tf->qScaleX = Q(1);
@@ -1856,7 +1852,7 @@ static void sub_804C5B8(SuperEggRoboZ *boss)
     s->y = I(sp00.y) - gCamera.y + r3;
 
     s->frameFlags
-        = (gUnknown_030054B8++ | (SPRITE_FLAG(PRIORITY, 3) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
+        = (gOamMatrixIndex++ | (SPRITE_FLAG(PRIORITY, 3) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
 
     tf->rotation = boss->unk10;
     tf->qScaleX = Q(1);
@@ -1882,8 +1878,8 @@ static void sub_804C5B8(SuperEggRoboZ *boss)
         s->x = I(sp00.x) - gCamera.x;
         s->y = I(sp00.y) - gCamera.y;
 
-        s->frameFlags = (gUnknown_030054B8++
-                         | (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
+        s->frameFlags
+            = (gOamMatrixIndex++ | (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE));
 
         tf->rotation = boss->rotation[i];
         tf->qScaleX = Q(1);
@@ -2013,31 +2009,31 @@ static void sub_804CA70(SuperEggRoboZ *boss)
 
     if (boss->unkB != 0) {
         for (i = 0; i < ARRAY_COUNT(sArmPalettes[0]); i++) {
-            gObjPalette[8 * 16 + i] = sArmPalettes[pal][i];
+            SET_PALETTE_COLOR_OBJ(8, i, sArmPalettes[pal][i]);
         }
     } else {
         for (i = 0; i < ARRAY_COUNT(sArmPalettes[0]); i++) {
-            gObjPalette[8 * 16 + i] = sArmPalettes[0][i];
+            SET_PALETTE_COLOR_OBJ(8, i, sArmPalettes[0][i]);
         }
     }
 
     if (boss->unk3E[0] > 0) {
         for (i = 0; i < ARRAY_COUNT(sArmPalettes[0]); i++) {
-            gObjPalette[9 * 16 + i] = sArmPalettes[pal][i];
+            SET_PALETTE_COLOR_OBJ(9, i, sArmPalettes[pal][i]);
         }
     } else {
         for (i = 0; i < ARRAY_COUNT(sArmPalettes[0]); i++) {
-            gObjPalette[9 * 16 + i] = sArmPalettes[0][i];
+            SET_PALETTE_COLOR_OBJ(9, i, sArmPalettes[0][i]);
         }
     }
 
     if (boss->unk3E[1] > 0) {
         for (i = 0; i < ARRAY_COUNT(sArmPalettes[0]); i++) {
-            gObjPalette[12 * 16 + i] = sArmPalettes[pal][i];
+            SET_PALETTE_COLOR_OBJ(12, i, sArmPalettes[pal][i]);
         }
     } else {
         for (i = 0; i < ARRAY_COUNT(sArmPalettes[0]); i++) {
-            gObjPalette[12 * 16 + i] = sArmPalettes[0][i];
+            SET_PALETTE_COLOR_OBJ(12, i, sArmPalettes[0][i]);
         }
     }
 

@@ -56,9 +56,8 @@ struct MultiplayerSinglePakResultsScreen *InitAndGetResultsScreenObject(s16);
 void sub_8081FB0(void);
 void sub_80823FC(void);
 void sub_8082AA8(void);
-void Task_8082630(void);
-void sub_8082788(void);
-void sub_808267C(void);
+void SA2_LABEL(Task_8082630)(void);
+void SA2_LABEL(sub_808267C)(void);
 void sub_8082788(void);
 void sub_8082038(struct MultiplayerSinglePakResultsScreen *);
 void sub_8082B80(struct MultiplayerSinglePakResultsScreen *);
@@ -130,19 +129,19 @@ void sub_8081FB0(void)
     gDispCnt = 0x40;
     gBgCntRegs[3] = 0x5e0b;
     gBgCntRegs[2] = 0x1c0c;
-    gUnknown_03004D80[2] = 0x7f;
-    gUnknown_03002280[2][0] = 0;
-    gUnknown_03002280[2][1] = 0;
-    gUnknown_03002280[2][2] = 0xff;
-    gUnknown_03002280[2][3] = 32;
-    gUnknown_03004D80[3] = 0xff;
-    gUnknown_03002280[3][0] = 0;
-    gUnknown_03002280[3][1] = 0;
-    gUnknown_03002280[3][2] = 0xff;
-    gUnknown_03002280[3][3] = 64;
+    gBgSprites_Unknown1[2] = 0x7f;
+    gBgSprites_Unknown2[2][0] = 0;
+    gBgSprites_Unknown2[2][1] = 0;
+    gBgSprites_Unknown2[2][2] = 0xff;
+    gBgSprites_Unknown2[2][3] = 32;
+    gBgSprites_Unknown1[3] = 0xff;
+    gBgSprites_Unknown2[3][0] = 0;
+    gBgSprites_Unknown2[3][1] = 0;
+    gBgSprites_Unknown2[3][2] = 0xff;
+    gBgSprites_Unknown2[3][3] = 64;
 
-    DmaFill32(3, 0, (void *)VRAM + 0x9FE0, 65);
-    DmaFill32(3, 0, (void *)VRAM + 0xCFE0, 65);
+    DmaFill32(3, 0, (void *)VRAM + 0x9FE0, 64);
+    DmaFill32(3, 0, (void *)VRAM + 0xCFE0, 64);
 }
 
 void sub_8082038(struct MultiplayerSinglePakResultsScreen *screen)
@@ -215,6 +214,7 @@ void Task_MultiplayerSinglePakResultsScreenInit(void)
 
         if (resultsScreen->unk434) {
             for (i = 0; i < 3; i++) {
+                s32 temp;
                 s = &resultsScreen->unk370[i];
                 s->graphics.dest = (void *)(OBJ_VRAM0 + 0x2500 + (i * 0x180));
 
@@ -223,7 +223,8 @@ void Task_MultiplayerSinglePakResultsScreenInit(void)
                 s->oamFlags = SPRITE_OAM_ORDER(4);
                 s->graphics.size = 0;
 
-#ifndef NON_MATCHING
+// Non match required for non japan main rom
+#if !defined(NON_MATCHING) && !defined(JAPAN)
 #if COLLECT_RINGS_ROM
                 do
 #endif
@@ -237,6 +238,7 @@ void Task_MultiplayerSinglePakResultsScreenInit(void)
                 while (0);
 #endif
 #endif
+
                 switch (gMultiplayerLanguage) {
 #ifdef JAPAN
                     case LANG_DEFAULT:
@@ -248,8 +250,6 @@ void Task_MultiplayerSinglePakResultsScreenInit(void)
                         break;
 #ifdef JAPAN
                     case LANG_ENGLISH:
-                        s->graphics.anim = SA2_ANIM_MP_SINGLE_PAK_RESULTS_ROUND;
-                        break;
 #endif
                     default:
                         s->graphics.anim = SA2_ANIM_MP_SINGLE_PAK_RESULTS_ROUND;
@@ -322,18 +322,18 @@ void Task_MultiplayerSinglePakResultsScreenInit(void)
 
         for (i = 0; i < 4; i++) {
             if (!(gMultiSioStatusFlags & MULTI_SIO_RECV_ID(i + 8))) {
-                if (gUnknown_030054B4[i] & 1) {
+                if (gMultiplayerRanks[i] & 1) {
                     sub_80078D4(3, i * 40, (i + 1) * 40, DISPLAY_WIDTH - resultsScreen->unk430, DISPLAY_HEIGHT - i * 40);
                 } else {
                     sub_80078D4(3, i * 40, (i + 1) * 40, resultsScreen->unk430 - DISPLAY_WIDTH, DISPLAY_HEIGHT - i * 40);
                 }
             } else {
-                if (gUnknown_030054B4[i] & 1) {
-                    sub_80078D4(3, gUnknown_030054B4[i] * 40, (gUnknown_030054B4[i] + 1) * 40, DISPLAY_WIDTH - resultsScreen->unk430,
-                                (i * 5 - gUnknown_030054B4[i] * 5) * 8);
+                if (gMultiplayerRanks[i] & 1) {
+                    sub_80078D4(3, gMultiplayerRanks[i] * 40, (gMultiplayerRanks[i] + 1) * 40, DISPLAY_WIDTH - resultsScreen->unk430,
+                                (i * 5 - gMultiplayerRanks[i] * 5) * 8);
                 } else {
-                    sub_80078D4(3, gUnknown_030054B4[i] * 40, (gUnknown_030054B4[i] + 1) * 40, resultsScreen->unk430 - DISPLAY_WIDTH,
-                                (i * 5 - gUnknown_030054B4[i] * 5) * 8);
+                    sub_80078D4(3, gMultiplayerRanks[i] * 40, (gMultiplayerRanks[i] + 1) * 40, resultsScreen->unk430 - DISPLAY_WIDTH,
+                                (i * 5 - gMultiplayerRanks[i] * 5) * 8);
                 }
             }
         }
@@ -370,7 +370,11 @@ void sub_80823FC(void)
             switch (gMultiplayerLanguage) {
                 case 0:
                     background->unk1E = 0;
+#ifdef JAPAN
+                    background->unk20 = 0;
+#else
                     background->unk20 = 4;
+#endif
                     break;
                 case 1:
                     background->unk1E = 0;
@@ -433,36 +437,35 @@ void sub_80823FC(void)
     }
 }
 
-void Task_8082630(void)
+void SA2_LABEL(Task_8082630)(void)
 {
     struct MultiplayerSinglePakResultsScreen *resultsScreen = TASK_DATA(gCurTask);
     resultsScreen->unk430 += 0x20;
-    sub_8082788();
+    SA2_LABEL(sub_8082788)();
 
-    if (resultsScreen->unk430 > 0x1000) {
-        resultsScreen->unk430 = 0x1000;
-        // irrelevant
+    if (resultsScreen->unk430 > Q(16)) {
+        resultsScreen->unk430 = Q(16);
         gBldRegs.bldY = 0x10;
-        gCurTask->main = sub_808267C;
+        gCurTask->main = SA2_LABEL(sub_808267C);
     }
 
-    gBldRegs.bldY = resultsScreen->unk430 >> 8;
+    gBldRegs.bldY = I(resultsScreen->unk430);
 }
 
-void sub_808267C(void)
+void SA2_LABEL(sub_808267C)(void)
 {
     union MultiSioData *packet;
     struct MultiplayerSinglePakResultsScreen *resultsScreen = TASK_DATA(gCurTask);
 
     packet = &gMultiSioRecv[0];
 
-    if (packet->pat3.unk0 == 0x4080) {
+    if (packet->pat3.unk0 == COMM_DATA(0x80)) {
         u32 i;
         gMultiplayerPseudoRandom = packet->pat3.unk8;
 
         for (i = 0; i < 4; i++) {
             gMultiplayerCharacters[i] = 0;
-            gUnknown_030054B4[i] = i;
+            gMultiplayerRanks[i] = i;
         }
 
         gFlags &= ~4;
@@ -473,29 +476,31 @@ void sub_808267C(void)
             TaskDestroy(gCurTask);
             gBldRegs.bldCnt = 0;
             gBldRegs.bldY = 0;
-            sub_8081200();
+            SA2_LABEL(sub_8081200)();
+#if (GAME == GAME_SA2)
             GameStageStart();
+#endif
         }
         return;
     }
 
-    sub_8082788();
+    SA2_LABEL(sub_8082788)();
     packet = &gMultiSioSend;
-    packet->pat0.unk0 = 0x4051;
+    packet->pat0.unk0 = COMM_DATA(0x51);
     packet->pat0.unk2 = 0;
 
-    if (gMultiSioStatusFlags & MULTI_SIO_PARENT) {
+    if ((gMultiSioStatusFlags & MULTI_SIO_TYPE) == MULTI_SIO_PARENT) {
         u8 i;
         for (i = 0; i < 4; i++) {
             if (GetBit(gMultiplayerConnections, i)) {
                 packet = &gMultiSioRecv[i];
-                if (packet->pat0.unk0 != 0x4051) {
+                if (packet->pat0.unk0 != COMM_DATA(0x51)) {
                     return;
                 }
             }
         }
         packet = &gMultiSioSend;
-        packet->pat3.unk0 = 0x4080;
+        packet->pat3.unk0 = COMM_DATA(0x80);
         packet->pat3.unk8 = resultsScreen->unk43C;
     }
 }
@@ -514,19 +519,19 @@ void sub_8082788(void)
         if (!(gMultiSioStatusFlags & MULTI_SIO_RECV_ID(i + 8))) {
             sub_80078D4(3, i * 40, (i + 1) * 40, 0, DISPLAY_HEIGHT - i * 40);
         } else {
-            sub_80078D4(3, gUnknown_030054B4[i] * 40, (gUnknown_030054B4[i] + 1) * 40, 0, i * 40 - gUnknown_030054B4[i] * 40);
+            sub_80078D4(3, gMultiplayerRanks[i] * 40, (gMultiplayerRanks[i] + 1) * 40, 0, i * 40 - gMultiplayerRanks[i] * 40);
             if (resultsScreen->unk434) {
                 u16 temp;
 
                 s = &resultsScreen->unk80[i].unk0;
                 s->x = (DISPLAY_WIDTH / 2);
-                s->y = gUnknown_030054B4[i] * 40 + 20;
+                s->y = gMultiplayerRanks[i] * 40 + 20;
                 UpdateSpriteAnimation(s);
                 DisplaySprite(s);
 
                 s = &resultsScreen->unk370[gMultiplayerCharacters[i]];
                 s->x = 52;
-                s->y = gUnknown_030054B4[i] * 40 + 20;
+                s->y = gMultiplayerRanks[i] * 40 + 20;
                 DisplaySprite(s);
 
                 // TODO: Fix type
@@ -535,7 +540,7 @@ void sub_8082788(void)
 
                 if (s != &resultsScreen->unk160[0]) {
                     s->x = 160;
-                    s->y = gUnknown_030054B4[i] * 40 + 20;
+                    s->y = gMultiplayerRanks[i] * 40 + 20;
                     DisplaySprite(s);
                 }
 
@@ -543,13 +548,13 @@ void sub_8082788(void)
 
                 if (s != &resultsScreen->unk160[0] || (temp > 0xFF)) {
                     s->x = 171;
-                    s->y = gUnknown_030054B4[i] * 40 + 20;
+                    s->y = gMultiplayerRanks[i] * 40 + 20;
                     DisplaySprite(s);
                 }
 
                 s = &resultsScreen->unk160[(temp)&0xF];
                 s->x = 182;
-                s->y = gUnknown_030054B4[i] * 40 + 20;
+                s->y = gMultiplayerRanks[i] * 40 + 20;
                 DisplaySprite(s);
             } else {
                 u16 temp;

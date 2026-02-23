@@ -11,7 +11,7 @@
 #include "game/stage/player_super_sonic.h"
 #include "game/stage/results.h"
 #include "game/stage/ui.h"
-#include "game/stage/game_7.h"
+#include "game/stage/screen_mask.h"
 #include "game/sa1_sa2_shared/globals.h"
 #include "game/sa1_sa2_shared/camera.h"
 #include "game/sa1_sa2_shared/player.h"
@@ -321,7 +321,7 @@ const TA53_Data1 gUnknown_080D8DCC[6] = {
 };
 
 const TA53_Rocket_Callback gUnknown_080D8E14[3] = { sub_804E974, sub_804EB6C, sub_804EC6C };
-const u8 sRGB_080D8E20[4][16][3] = {
+const u8 sRGB_080D8E20[4][PALETTE_LEN_4BPP][3] = {
     {
         { 0, 0, 0 },
         { 2, 2, 28 },
@@ -836,7 +836,7 @@ void Task_EggmanKidnapsVanilla(void)
     gHBlankCopyTarget = (void *)&REG_BG1VOFS;
     gHBlankCopySize = 2;
 
-    offset = gBgOffsetsHBlank;
+    offset = gBgOffsetsHBlankPrimary;
     for (y = 0; y < DISPLAY_HEIGHT - 1; y++) {
         s16 val = (SIN(((y + gStageTime) * 40) & ONE_CYCLE) >> 12) + 0x2C;
         *offset++ = val;
@@ -1038,7 +1038,7 @@ void Task_804DC60(void)
         TasksDestroyAll();
 
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
 
         PAUSE_GRAPHICS_QUEUE();
 
@@ -1314,7 +1314,7 @@ void sub_804E15C(struct TA53_unk48 *unk48)
             sb += ((COS(r6) * gUnknown_080D89A5[5]) >> 6);
             r8 += ((SIN(r6) * gUnknown_080D89A5[5]) >> 6);
 
-            sub_802E784(r6, (26 - (s8)r4), 16, (I(sb) - gCamera.x), (I(r8) - gCamera.y), r5);
+            ScreenMask_CreateShape(r6, (26 - (s8)r4), 16, (I(sb) - gCamera.x), (I(r8) - gCamera.y), r5);
         } else {
             u32 p0;
             // _0804E43C
@@ -1385,8 +1385,8 @@ void sub_804E4CC(struct TA53_unk48 *unk48)
             b = sRGB_080D8E20[3][c][2];
             b = ((b * r6) >> 12) & 0x1F;
 
-            gObjPalette[c + 8 * 16] = RGB16_REV(r, g, b);
-            gBgPalette[c] = RGB16_REV(r, g, b);
+            SET_PALETTE_COLOR_OBJ(8, c, RGB16_REV(r, g, b));
+            SET_PALETTE_COLOR_BG(0, c, RGB16_REV(r, g, b));
         }
 
         gFlags |= FLAGS_UPDATE_SPRITE_PALETTES;
@@ -1407,7 +1407,12 @@ void sub_804E4CC(struct TA53_unk48 *unk48)
                 g = ((g * r6) >> 9) & 0x1F;
                 b = sRGB_080D8E20[i][c][2];
                 b = ((b * r6) >> 9) & 0x1F;
-                gBgPalette[0x70 + c + (i * 16)] = RGB16_REV(r, g, b);
+#ifndef NON_MATCHING
+                // TODO: This should work...
+                gBgPalette[7 * PALETTE_LEN_4BPP + c + (i * PALETTE_LEN_4BPP)] = RGB16_REV(r, g, b);
+#else
+                SET_PALETTE_COLOR_BG(7, c + (i * PALETTE_LEN_4BPP), RGB16_REV(r, g, b));
+#endif
             }
         }
 
@@ -2678,8 +2683,8 @@ void sub_80501D4(TA53Boss *boss)
         s->x = I(qX) - gCamera.x;
         s->y = I(qY) - gCamera.y;
 
-        s->frameFlags |= (SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE
-                          | (u8)gUnknown_030054B8++);
+        s->frameFlags
+            |= (SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE | gOamMatrixIndex++);
 
         transform->rotation = r7;
         transform->qScaleX = Q(1);
@@ -2701,8 +2706,8 @@ void sub_80501D4(TA53Boss *boss)
     s->x = I(qX) - gCamera.x;
     s->y = I(qY) - gCamera.y;
 
-    s->frameFlags |= (SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE
-                      | (u8)gUnknown_030054B8++);
+    s->frameFlags
+        |= (SPRITE_FLAG(PRIORITY, 2) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE | gOamMatrixIndex++);
 
     transform->rotation = sinIndex;
     transform->qScaleX = Q(1);
@@ -2800,8 +2805,8 @@ void sub_80505B8(TA53Boss *boss)
         s->x = I(qX) - gCamera.x;
         s->y = I(qY) - gCamera.y;
 
-        s->frameFlags |= (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE
-                          | (u8)gUnknown_030054B8++);
+        s->frameFlags
+            |= (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE | gOamMatrixIndex++);
 
         transform->rotation = r7;
         transform->qScaleX = Q(1);
@@ -2823,8 +2828,8 @@ void sub_80505B8(TA53Boss *boss)
     s->x = I(qX) - gCamera.x;
     s->y = I(qY) - gCamera.y;
 
-    s->frameFlags |= (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE
-                      | (u8)gUnknown_030054B8++);
+    s->frameFlags
+        |= (SPRITE_FLAG(PRIORITY, 1) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE | SPRITE_FLAG_MASK_ROT_SCALE_DOUBLE_SIZE | (u8)gOamMatrixIndex++);
 
     transform->rotation = sinIndex;
     transform->qScaleX = Q(1);
@@ -2870,31 +2875,24 @@ void sub_8050958(TA53Boss *boss)
     if (boss->unkD > 0) {
         if (--boss->unkD == 0) {
             for (i = 0; i < 16; i++) {
-                gObjPalette[i + 8 * 16] = gUnknown_080D8EF0[1][i];
-                gBgPalette[i + 0 * 16] = gObjPalette[i + 8 * 16];
+                SET_PALETTE_COLOR_OBJ(8, i, gUnknown_080D8EF0[1][i]);
+                SET_PALETTE_COLOR_BG(0, i, gUnknown_080D8EF0[1][i]);
             }
         } else {
             // _080509B0
-            u16 r6 = (gStageTime >> 1) % 16u;
+            u16 r6 = (gStageTime >> 1) % PALETTE_LEN_4BPP;
 
             if (boss->lives < 4) {
-                for (i = 0; i < 16; i++) {
-                    gObjPalette[8 * 16 + ((i + r6) % 16u)] = gUnknown_080D8EF0[0][i] >> 5;
-                    gBgPalette[0 * 16 + ((i + r6) % 16u)] = gObjPalette[8 * 16 + ((i + r6) % 16u)];
+                for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+                    SET_PALETTE_COLOR_OBJ(8, ((i + r6) % PALETTE_LEN_4BPP), gUnknown_080D8EF0[0][i] >> 5);
+                    SET_PALETTE_COLOR_BG(0, ((i + r6) % PALETTE_LEN_4BPP), gUnknown_080D8EF0[0][i] >> 5);
                 }
             } else {
-                for (i = 0; i < 16; i++) {
-                    u32 r0;
-                    u32 r2;
-                    u32 colId;
-                    u16 *objPalTgt = &gObjPalette[0];
-                    u32 objPalId;
-
-                    colId = ((i + r6) % 16u);
-                    objPalId = 8 * 16 + colId;
-                    objPalTgt[objPalId] = ((gUnknown_080D8EF0[0][i] << 5) | (gUnknown_080D8EF0[0][i] >> 5)) | gUnknown_080D8EF0[0][i];
-                    gBgPalette[0 * 16 + colId]
-                        = ((gUnknown_080D8EF0[0][i] << 5) | (gUnknown_080D8EF0[0][i] >> 5)) | gUnknown_080D8EF0[0][i];
+                for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+                    SET_PALETTE_COLOR_OBJ(8, ((i + r6) % PALETTE_LEN_4BPP),
+                                          ((gUnknown_080D8EF0[0][i] << 5) | (gUnknown_080D8EF0[0][i] >> 5)) | gUnknown_080D8EF0[0][i]);
+                    SET_PALETTE_COLOR_BG(0, ((i + r6) % PALETTE_LEN_4BPP),
+                                         ((gUnknown_080D8EF0[0][i] << 5) | (gUnknown_080D8EF0[0][i] >> 5)) | gUnknown_080D8EF0[0][i]);
                 }
             }
         }

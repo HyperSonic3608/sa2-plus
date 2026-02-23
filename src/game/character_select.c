@@ -515,11 +515,11 @@ void CreateCharacterSelectionScreen(u8 initialSelection, bool8 allUnlocked)
     s->frameFlags = 0;
     UpdateSpriteAnimation(s);
 
-    for (i = 0; i < 16; i++) {
-        gObjPalette[i + 240] = 0;
+    for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+        SET_PALETTE_COLOR_OBJ(15, i, 0);
     }
 
-    gFlags |= 0x2;
+    gFlags |= FLAGS_UPDATE_SPRITE_PALETTES;
 }
 
 static void Task_FadeInAndStartRollInAnim(void)
@@ -1030,7 +1030,7 @@ static void Task_FadeOutAndExitToPrevious(void)
     if (UpdateScreenFade(unk0) == SCREEN_FADE_COMPLETE) {
         TasksDestroyAll();
         PAUSE_BACKGROUNDS_QUEUE();
-        gUnknown_03005390 = 0;
+        gBgSpritesCount = 0;
         PAUSE_GRAPHICS_QUEUE();
         if (gGameMode != GAME_MODE_SINGLE_PLAYER) {
             CreateTimeAttackModeSelectionScreen();
@@ -1140,7 +1140,7 @@ static void RenderTransitionInUIAnim(struct CharacterSelectionScreen *characterS
     transform->x = s->x;
     transform->y = s->y;
 
-    s->frameFlags = gUnknown_030054B8++ | 0x60;
+    s->frameFlags = gOamMatrixIndex++ | 0x60;
     UpdateSpriteAnimation(s);
     TransformSprite(s, transform);
     DisplaySprite(s);
@@ -1220,7 +1220,7 @@ static void RenderTransitionInUIAnim(struct CharacterSelectionScreen *characterS
     transform->x = s->x;
     transform->y = s->y;
 
-    s->frameFlags = gUnknown_030054B8++ | 0x20;
+    s->frameFlags = gOamMatrixIndex++ | 0x20;
     UpdateSpriteAnimation(s);
     TransformSprite(s, transform);
     DisplaySprite(s);
@@ -1237,7 +1237,7 @@ static void RenderTransitionInUIAnim(struct CharacterSelectionScreen *characterS
     transform->x = s->x;
     transform->y = s->y;
 
-    s->frameFlags = gUnknown_030054B8++ | 0x20;
+    s->frameFlags = gOamMatrixIndex++ | 0x20;
     UpdateSpriteAnimation(s);
     TransformSprite(s, transform);
     DisplaySprite(s);
@@ -1380,7 +1380,7 @@ static void RenderCarouselScrollAnim(struct CharacterSelectionScreen *characterS
         transform->x = s->x;
         transform->y = s->y;
 
-        s->frameFlags = gUnknown_030054B8++ | 0x60;
+        s->frameFlags = gOamMatrixIndex++ | 0x60;
         UpdateSpriteAnimation(s);
         TransformSprite(s, transform);
         DisplaySprite(s);
@@ -1462,7 +1462,7 @@ static void RenderCarouselScrollAnim(struct CharacterSelectionScreen *characterS
         transform->x = s->x;
         transform->y = s->y;
 
-        s->frameFlags = gUnknown_030054B8++ | 0x20;
+        s->frameFlags = gOamMatrixIndex++ | 0x20;
         UpdateSpriteAnimation(s);
         TransformSprite(s, transform);
     } else {
@@ -1483,7 +1483,7 @@ static void RenderCarouselScrollAnim(struct CharacterSelectionScreen *characterS
         transform->x = s->x;
         transform->y = s->y;
 
-        s->frameFlags = gUnknown_030054B8++ | 0x20;
+        s->frameFlags = gOamMatrixIndex++ | 0x20;
         UpdateSpriteAnimation(s);
         TransformSprite(s, transform);
     } else {
@@ -1548,7 +1548,7 @@ static void RenderUI(struct CharacterSelectionScreen *characterScreen)
         transform->x = s->x;
         transform->y = s->y;
 
-        s->frameFlags = gUnknown_030054B8++ | 0x60;
+        s->frameFlags = gOamMatrixIndex++ | 0x60;
         UpdateSpriteAnimation(s);
         TransformSprite(s, transform);
         DisplaySprite(s);
@@ -1596,7 +1596,7 @@ static void Task_MultiplayerWaitForSelections(void)
     union MultiSioData *send, *recv;
     u32 i, j;
     Sprite *s;
-    u8 charactersSelected[NUM_CHARACTERS] = { 0, 0, 0, 0, 0 };
+    u8 charactersSelected[NUM_CHARACTERS] = { 0 };
 
     struct CharacterSelectionScreen *characterScreen = TASK_DATA(gCurTask);
     BackgroundAnim();

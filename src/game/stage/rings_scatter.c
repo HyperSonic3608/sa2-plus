@@ -448,23 +448,15 @@ void RingsScatterSingleplayer_FlippedGravity(void)
 
                     sp10 = TRUE;
                 } else {
-                    OamData *oam = &gOamBuffer2[s->oamBaseIndex];
+                    OamData *oam = &gOamMallocBuffer[s->oamBaseIndex];
 
                     OamData *oamAlloced = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                     if (iwram_end != oamAlloced) {
-                        // NOTE: This will not work out for widescreen resolutions
-                        u32 dimOffX, dimOffY;
                         DmaCopy16(3, oam, oamAlloced, sizeof(OamDataShort));
-                        oamAlloced->all.attr0 &= 0xFF00;
 
-                        dimOffY = screenY - (u16)s->dimensions->offsetY;
-                        oamAlloced->all.attr0 += dimOffY & 0xFF;
-
-                        oamAlloced->all.attr1 &= 0xFE00;
-
-                        dimOffX = screenX - (u16)s->dimensions->offsetX;
-                        oamAlloced->all.attr1 += dimOffX & 0x1FF;
+                        OAM_SET_Y(oamAlloced, screenY - (u16)s->dimensions->offsetY);
+                        OAM_SET_X(oamAlloced, screenX - (u16)s->dimensions->offsetX);
                     }
                 }
             }
@@ -508,8 +500,8 @@ void RingsScatterSingleplayer_NormalGravity(void)
         ring->x += ring->velX;
         ring->y += ring->velY;
 #elif (GAME == GAME_SA2)
-        ring->x += ring->velX + gUnknown_030054FC;
-        ring->y += ring->velY + gUnknown_030054E0;
+        ring->x += ring->velX + gWorldSpeedX;
+        ring->y += ring->velY + gWorldSpeedY;
 #endif
 
         ringIntX = I(ring->x);
@@ -576,23 +568,15 @@ void RingsScatterSingleplayer_NormalGravity(void)
 
                     sp10 = TRUE;
                 } else {
-                    OamData *oam = &gOamBuffer2[s->oamBaseIndex];
+                    OamData *oam = &gOamMallocBuffer[s->oamBaseIndex];
 
                     OamData *oamAlloced = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                     if (iwram_end != oamAlloced) {
-                        // NOTE: This will not work out for widescreen resolutions
-                        u32 dimOffX, dimOffY;
                         DmaCopy16(3, oam, oamAlloced, sizeof(OamDataShort));
-                        oamAlloced->all.attr0 &= 0xFF00;
 
-                        dimOffY = screenY - (u16)s->dimensions->offsetY;
-                        oamAlloced->all.attr0 += dimOffY & 0xFF;
-
-                        oamAlloced->all.attr1 &= 0xFE00;
-
-                        dimOffX = screenX - (u16)s->dimensions->offsetX;
-                        oamAlloced->all.attr1 += dimOffX & 0x1FF;
+                        OAM_SET_Y(oamAlloced, screenY - (u16)s->dimensions->offsetY);
+                        OAM_SET_X(oamAlloced, screenX - (u16)s->dimensions->offsetX);
                     }
                 }
             }
@@ -704,23 +688,15 @@ NONMATCH("asm/non_matching/game/stage/rings_scatter/RingsScatterMultipak_Flipped
 
                         sp10 = TRUE;
                     } else {
-                        OamData *oam = &gOamBuffer2[s->oamBaseIndex];
+                        OamData *oam = &gOamMallocBuffer[s->oamBaseIndex];
 
                         OamData *oamAlloced = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                         if (iwram_end != oamAlloced) {
-                            // NOTE: This will not work out for widescreen resolutions
-                            u32 dimOffX, dimOffY;
                             DmaCopy16(3, oam, oamAlloced, sizeof(OamDataShort));
-                            oamAlloced->all.attr0 &= 0xFF00;
 
-                            dimOffY = screenY - (u16)s->dimensions->offsetY;
-                            oamAlloced->all.attr0 += dimOffY & 0xFF;
-
-                            oamAlloced->all.attr1 &= 0xFE00;
-
-                            dimOffX = screenX - (u16)s->dimensions->offsetX;
-                            oamAlloced->all.attr1 += dimOffX & 0x1FF;
+                            OAM_SET_Y(oamAlloced, screenY - (u16)s->dimensions->offsetY);
+                            OAM_SET_X(oamAlloced, screenX - (u16)s->dimensions->offsetX);
                         }
                     }
                 }
@@ -767,8 +743,8 @@ NONMATCH("asm/non_matching/game/stage/rings_scatter/RingsScatterMultipak_NormalG
             continue;
         }
 
-        ring->x += ring->velX + gUnknown_030054FC;
-        ring->y += ring->velY + gUnknown_030054E0;
+        ring->x += ring->velX + gWorldSpeedX;
+        ring->y += ring->velY + gWorldSpeedY;
 
         ringIntX = I(ring->x);
         ringIntY = I(ring->y);
@@ -831,23 +807,16 @@ NONMATCH("asm/non_matching/game/stage/rings_scatter/RingsScatterMultipak_NormalG
 
                         sp10 = TRUE;
                     } else {
-                        OamData *oam = &gOamBuffer2[s->oamBaseIndex];
+                        OamData *oam = &gOamMallocBuffer[s->oamBaseIndex];
 
                         OamData *oamAlloced = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                         if (iwram_end != oamAlloced) {
-                            // NOTE: This will not work out for widescreen resolutions
                             u32 dimOffX, dimOffY;
                             DmaCopy16(3, oam, oamAlloced, sizeof(OamDataShort));
-                            oamAlloced->all.attr0 &= 0xFF00;
 
-                            dimOffY = screenY - (u16)s->dimensions->offsetY;
-                            oamAlloced->all.attr0 += dimOffY & 0xFF;
-
-                            oamAlloced->all.attr1 &= 0xFE00;
-
-                            dimOffX = screenX - (u16)s->dimensions->offsetX;
-                            oamAlloced->all.attr1 += dimOffX & 0x1FF;
+                            OAM_SET_Y(oamAlloced, screenY - (u16)s->dimensions->offsetY);
+                            OAM_SET_X(oamAlloced, screenX - (u16)s->dimensions->offsetX);
                         }
                     }
                 }
@@ -901,8 +870,8 @@ NONMATCH("asm/non_matching/game/stage/rings_scatter/RingsScatterSinglepakMain_Co
             continue;
         }
 
-        ring->x += ring->velX + gUnknown_030054FC;
-        ring->y += ring->velY + gUnknown_030054E0;
+        ring->x += ring->velX + gWorldSpeedX;
+        ring->y += ring->velY + gWorldSpeedY;
 
         ringIntX = I(ring->x);
         ringIntY = I(ring->y);
@@ -965,23 +934,15 @@ NONMATCH("asm/non_matching/game/stage/rings_scatter/RingsScatterSinglepakMain_Co
 
                         sp10 = TRUE;
                     } else {
-                        OamData *oam = &gOamBuffer2[s->oamBaseIndex];
+                        OamData *oam = &gOamMallocBuffer[s->oamBaseIndex];
 
                         OamData *oamAlloced = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                         if (iwram_end != oamAlloced) {
-                            // NOTE: This will not work out for widescreen resolutions
-                            u32 dimOffX, dimOffY;
                             DmaCopy16(3, oam, oamAlloced, sizeof(OamDataShort));
-                            oamAlloced->all.attr0 &= 0xFF00;
 
-                            dimOffY = screenY - (u16)s->dimensions->offsetY;
-                            oamAlloced->all.attr0 += dimOffY & 0xFF;
-
-                            oamAlloced->all.attr1 &= 0xFE00;
-
-                            dimOffX = screenX - (u16)s->dimensions->offsetX;
-                            oamAlloced->all.attr1 += dimOffX & 0x1FF;
+                            OAM_SET_Y(oamAlloced, screenY - (u16)s->dimensions->offsetY);
+                            OAM_SET_X(oamAlloced, screenX - (u16)s->dimensions->offsetX);
                         }
                     }
                 }

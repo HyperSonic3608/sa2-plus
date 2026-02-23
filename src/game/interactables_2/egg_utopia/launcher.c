@@ -90,7 +90,7 @@ void CreateEntity_Launcher(MapEntity *me, u16 spriteRegionX, u16 spriteRegionY, 
     launcher->base.regionX = spriteRegionX;
     launcher->base.regionY = spriteRegionY;
     launcher->base.me = me;
-    launcher->base.spriteX = me->x;
+    launcher->base.meX = me->x;
     launcher->base.id = spriteY;
 
     switch (launcher->kind) {
@@ -218,7 +218,7 @@ static void HandleActivate(Sprite_EggUtopia_Launcher *launcher)
 
     Player_TransitionCancelFlyingAndBoost(&gPlayer);
     PLAYERFN_CHANGE_SHIFT_OFFSETS(&gPlayer, 6, 14);
-    gPlayer.moveState &= ~MOVESTATE_4;
+    gPlayer.moveState &= ~MOVESTATE_SPIN_ATTACK;
 
     if (IS_LAUNCHER_DIR_LEFT(launcher->kind)) {
         gPlayer.moveState |= MOVESTATE_FACING_LEFT;
@@ -420,7 +420,7 @@ static bool32 ShouldDespawn(Sprite_EggUtopia_Launcher *launcher)
 
 static void Despawn(Sprite_EggUtopia_Launcher *launcher)
 {
-    SET_MAP_ENTITY_NOT_INITIALIZED(launcher->base.me, launcher->base.spriteX);
+    SET_MAP_ENTITY_NOT_INITIALIZED(launcher->base.me, launcher->base.meX);
     TaskDestroy(gCurTask);
 }
 

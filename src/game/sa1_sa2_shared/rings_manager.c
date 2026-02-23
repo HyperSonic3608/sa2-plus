@@ -368,7 +368,7 @@ NONMATCH("asm/non_matching/game/sa1_sa2_shared/Task_RingsMgrMain_collect_rings.i
                                     DisplaySprite(s);
                                 } else {
                                     // _08008788
-                                    OamData *oamDat = &gOamBuffer2[s->oamBaseIndex];
+                                    OamData *oamDat = &gOamMallocBuffer[s->oamBaseIndex];
                                     OamData *oamAllocated = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                                     if (iwram_end == oamAllocated)
@@ -376,11 +376,16 @@ NONMATCH("asm/non_matching/game/sa1_sa2_shared/Task_RingsMgrMain_collect_rings.i
 
                                     DmaCopy16(3, oamDat, oamAllocated, sizeof(OamDataShort));
 
+#if !EXTENDED_OAM
                                     // TODO: Can these be done more explicitly?
                                     oamAllocated->all.attr1 &= 0xFE00;
                                     oamAllocated->all.attr0 &= 0xFF00;
                                     oamAllocated->all.attr0 += ((ry - gCamera.y) - dimensions->offsetY) & 0xFF;
                                     oamAllocated->all.attr1 += ((rx - gCamera.x) - dimensions->offsetX) & 0x1FF;
+#else
+                                    oamAllocated->split.x = ((rx - gCamera.x) - dimensions->offsetX);
+                                    oamAllocated->split.y = ((ry - gCamera.y) - dimensions->offsetY);
+#endif
                                 }
 
                                 drawCount++;
@@ -424,7 +429,7 @@ NONMATCH("asm/non_matching/game/sa1_sa2_shared/Task_RingsMgrMain_collect_rings.i
                                     s->y = ry - gCamera.y;
                                     DisplaySprite(s);
                                 } else {
-                                    OamData *oamDat = &gOamBuffer2[s->oamBaseIndex];
+                                    OamData *oamDat = &gOamMallocBuffer[s->oamBaseIndex];
                                     OamData *oamAllocated = OamMalloc(GET_SPRITE_OAM_ORDER(s));
 
                                     if (iwram_end == oamAllocated)
@@ -432,11 +437,16 @@ NONMATCH("asm/non_matching/game/sa1_sa2_shared/Task_RingsMgrMain_collect_rings.i
 
                                     DmaCopy16(3, oamDat, oamAllocated, sizeof(OamDataShort));
 
+#if !EXTENDED_OAM
                                     // TODO: Can these be done more explicitly?
                                     oamAllocated->all.attr1 &= 0xFE00;
                                     oamAllocated->all.attr0 &= 0xFF00;
                                     oamAllocated->all.attr0 += ((ry - gCamera.y) - dimensions->offsetY) & 0xFF;
                                     oamAllocated->all.attr1 += ((rx - gCamera.x) - dimensions->offsetX) & 0x1FF;
+#else
+                                    oamAllocated->split.x = ((rx - gCamera.x) - dimensions->offsetX);
+                                    oamAllocated->split.y = ((ry - gCamera.y) - dimensions->offsetY);
+#endif
                                 }
 
                                 drawCount++;

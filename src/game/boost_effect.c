@@ -173,7 +173,7 @@ static inline void sub_8015B64_inline(AnimId anim, u16 palId)
 #endif
         numColors = *pAnim % 256u;
 
-        DmaCopy32(3, &gRefSpriteTables->palettes[animPalId * 16], &gObjPalette[insertOffset], numColors * sizeof(u16));
+        DmaCopy32(3, &gRefSpriteTables->palettes[animPalId * 16], &GET_PALETTE_COLOR_OBJ(0, insertOffset), numColors * sizeof(u16));
 
         gFlags |= FLAGS_UPDATE_SPRITE_PALETTES;
     }
@@ -184,8 +184,8 @@ void CreateBoostEffectTasks(void)
     Sprite *s;
     u8 i;
 
-    if (IS_SINGLE_PLAYER && !gUnknown_030055BC && !IS_BOSS_STAGE(gCurrentLevel)) {
-        gUnknown_030055BC = TRUE;
+    if (IS_SINGLE_PLAYER && !gBoostEffectTasksCreated && !IS_BOSS_STAGE(gCurrentLevel)) {
+        gBoostEffectTasksCreated = TRUE;
 
         for (i = 0; i < ARRAY_COUNT(gUnknown_080D5674); i++) {
             struct Task *t = TaskCreate(Task_80159C8, sizeof(PlayerActions), 0x4000, 0, TaskDestructor_8015B50);
@@ -234,7 +234,7 @@ void Task_80159C8(void)
     if (!(gPlayer.moveState & MOVESTATE_4000000)) {
         if (gPlayer.moveState & MOVESTATE_GOAL_REACHED) {
             TaskDestroy(gCurTask);
-            gUnknown_030055BC = FALSE;
+            gBoostEffectTasksCreated = FALSE;
             return;
         }
     }
@@ -266,7 +266,7 @@ void Task_80159C8(void)
 
             if (SPRITE_FLAG_GET(s, ROT_SCALE_ENABLE)) {
                 SPRITE_FLAG_CLEAR(s, ROT_SCALE);
-                s->frameFlags |= (gUnknown_030054B8++) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE;
+                s->frameFlags |= (gOamMatrixIndex++) | SPRITE_FLAG_MASK_ROT_SCALE_ENABLE;
 
                 if (actions->plState.moveState & MOVESTATE_FACING_LEFT) {
                     transform->qScaleX = +Q(1);

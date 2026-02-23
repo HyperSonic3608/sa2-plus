@@ -247,11 +247,7 @@ void CreateEggFrog(void)
     gBgCntRegs[0] = 0x5A0D;
     gBgScrollRegs[0][0] = 0;
     gBgScrollRegs[0][1] = 0;
-    gUnknown_03004D80[0] = 0;
-    gUnknown_03002280[0][0] = 0;
-    gUnknown_03002280[0][1] = 0;
-    gUnknown_03002280[0][2] = 255;
-    gUnknown_03002280[0][3] = 64;
+    INIT_BG_SPRITES_LAYER_64(0);
     gPlayer.moveState |= MOVESTATE_IGNORE_INPUT;
     sub_8039ED4();
     gPseudoRandom = gStageTime;
@@ -447,7 +443,7 @@ static void Render(EggFrog *boss)
     s->x = 32;
     s->y = 40;
     UpdateSpriteAnimation(s);
-    sub_8003914(s);
+    DisplaySprite_BG(s);
     gBgScrollRegs[0][0] = 32 - (I(boss->x) - gCamera.x);
     gBgScrollRegs[0][1] = 40 - (I(boss->y) - gCamera.y);
 
@@ -1164,8 +1160,8 @@ static void sub_804931C(EggFrog *boss)
     if (boss->unk16 != 0) {
         u8 i;
 
-        for (i = 0; i < 16; i++) {
-            gBgPalette[i + 0xB0] = gUnknown_080D8796[(boss->unk16 & 2) >> 1][i];
+        for (i = 0; i < PALETTE_LEN_4BPP; i++) {
+            SET_PALETTE_COLOR_BG(11, i, gUnknown_080D8796[(boss->unk16 & 2) >> 1][i]);
         }
     }
 

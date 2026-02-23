@@ -7,8 +7,8 @@
 #include "data/sprite_data.h"
 #include "trig.h"
 
-void *gUnknown_03005B58 = NULL;
-void *gUnknown_03005B5C = NULL;
+void *gSpecialStageSubMenuVramPointer = NULL;
+void *gSpecialStageVramPointer = NULL;
 
 // Copied from `options.c` so contains some of that submenu logic
 void sub_806CA88(Sprite *obj, s8 target, u32 size, AnimId anim, u32 frameFlags, s16 xPos, s16 yPos, u16 oamOrder, u8 variant, u8 palId)
@@ -22,12 +22,12 @@ void sub_806CA88(Sprite *obj, s8 target, u32 size, AnimId anim, u32 frameFlags, 
     }
 
     if (target != 0) {
-        if (gUnknown_03005B58 == NULL) {
-            gUnknown_03005B58 = gUnknown_03005B5C;
+        if (gSpecialStageSubMenuVramPointer == NULL) {
+            gSpecialStageSubMenuVramPointer = gSpecialStageVramPointer;
         }
-        s->graphics.dest = gUnknown_03005B58;
+        s->graphics.dest = gSpecialStageSubMenuVramPointer;
     } else {
-        s->graphics.dest = gUnknown_03005B5C;
+        s->graphics.dest = gSpecialStageVramPointer;
     }
 
     s->graphics.size = 0;
@@ -48,12 +48,12 @@ void sub_806CA88(Sprite *obj, s8 target, u32 size, AnimId anim, u32 frameFlags, 
 
     switch (target) {
         case RENDER_TARGET_SCREEN:
-            gUnknown_03005B5C += size * TILE_SIZE_4BPP;
+            gSpecialStageVramPointer += size * TILE_SIZE_4BPP;
             // if we render to screen then the sub menu address should reset
             ResetSpecialStateScreenSubMenuVram();
             break;
         case RENDER_TARGET_SUB_MENU:
-            gUnknown_03005B58 += size * TILE_SIZE_4BPP;
+            gSpecialStageSubMenuVramPointer += size * TILE_SIZE_4BPP;
             break;
     }
 }
@@ -143,9 +143,9 @@ bool16 SpecialStageCalcEntityScreenPosition(struct UNK_806CB84 *a, struct Specia
 
 void sub_806CD68(Sprite *s)
 {
-    const u16 *reference;
+    const u16 *oamTemplate;
     OamData *oam;
-    u32 unk16, unk18;
+    u32 sx, sy;
     u16 sprHeight;
     u16 sprWidth;
     s16 numSubframes;
@@ -156,13 +156,13 @@ void sub_806CD68(Sprite *s)
     s->numSubFrames = sprDims->numSubframes;
     sprWidth = sprDims->width;
     sprHeight = sprDims->height;
-    unk16 = (s16)s->x - (sprWidth / 2);
-    unk18 = (s16)s->y - (sprHeight / 2);
+    sx = (s16)s->x - (sprWidth / 2);
+    sy = (s16)s->y - (sprHeight / 2);
 
     numSubframes = sprDims->numSubframes;
     for (i = 0; i < numSubframes; i++) {
-        u32 attr1_2;
-        reference = gRefSpriteTables->oamData[s->graphics.anim];
+        u32 x;
+        oamTemplate = gRefSpriteTables->oamData[s->graphics.anim];
 
         oam = OamMalloc(GET_SPRITE_OAM_ORDER(s));
         if (oam == iwram_end) {
@@ -173,23 +173,41 @@ void sub_806CD68(Sprite *s)
             s->oamBaseIndex = gOamFreeIndex - 1;
         }
 
-        DmaCopy16(3, &reference[(sprDims->oamIndex + i) * 3], oam, sizeof(u16) * 3);
-        attr1_2 = oam->all.attr1 & 0x1FF;
-        oam->all.attr0 = (unk18 + (oam->all.attr0 & 0xff)) & 0xff;
-        oam->all.attr0 |= 0x300;
+        DmaCopy16(3, &oamTemplate[(sprDims->oamIndex + i) * OAM_DATA_COUNT_NO_AFFINE], oam, OAM_DATA_SIZE_NO_AFFINE);
+#if !EXTENDED_OAM
+        x = oam->all.attr1 & 0x1FF;
+        oam->all.attr0 = (sy + (oam->all.attr0 & 0xff)) & 0xff;
+        oam->all.attr0 |= (ST_OAM_AFFINE_DOUBLE << 8);
         oam->all.attr1 &= 0xfe00;
-        oam->all.attr1 |= ((s->frameFlags & 0x1f) << 9);
-        oam->all.attr1 |= ((unk16 + attr1_2) & 0x1ff);
+        oam->all.attr1 |= (SPRITE_FLAG_GET(s, ROT_SCALE) << 9);
+        oam->all.attr1 |= ((sx + x) & 0x1ff);
         oam->all.attr2 += s->palId << 12;
-        oam->all.attr2 |= ((s->frameFlags & 0x3000) >> 2);
+        oam->all.attr2 |= (SPRITE_FLAG_GET(s, PRIORITY) << 10);
         oam->all.attr2 += GET_TILE_NUM(s->graphics.dest);
+#else
+        x = oam->split.x;
+        oam->split.y += sy;
+        oam->split.affineMode = ST_OAM_AFFINE_DOUBLE;
+        oam->split.matrixNum = SPRITE_FLAG_GET(s, ROT_SCALE);
+        oam->split.x = sx + x;
+        oam->split.paletteNum += s->palId;
+        oam->split.priority = SPRITE_FLAG_GET(s, PRIORITY);
+        oam->split.tileNum += GET_TILE_NUM(s->graphics.dest);
+#endif
     }
 }
 
 void InitSpecialStageScreenVram(void)
 {
-    gUnknown_03005B5C = (void *)OBJ_VRAM0;
-    gUnknown_03005B58 = NULL;
+    gSpecialStageVramPointer = (void *)OBJ_VRAM0;
+    gSpecialStageSubMenuVramPointer = NULL;
+#ifdef BUG_FIX
+    // You can come into a situation where a backgorund gets put onto the queue,
+    // but the memory gets free'd.
+    // So we need to make sure the Background Copy Queue is clear.
+    PAUSE_BACKGROUNDS_QUEUE();
+    PAUSE_GRAPHICS_QUEUE();
+#endif
 }
 
 void SpecialStageDrawBackground(Background *background, u32 a, u32 b, u8 tilemapId, u16 d, u16 e, u16 palOffset, u8 bg_id, u16 scrollX,
